@@ -71,3 +71,42 @@ bool Hdf5Read::read_file(double* data, int& row, int& col, const char* file_path
 	
 }
 
+double* Hdf5Read::read_ont_file(int& dim, const char* file_path, const char* db_name) {
+
+	hid_t file, group,dataset,datatype;
+	herr_t status;
+	H5G_info_t ginfo;
+	ssize_t size;
+	hsize_t i,dims;
+	char* name;
+
+	//获取group下的subgroup
+
+	file = H5Fopen(file_path, H5F_ACC_RDONLY, H5P_DEFAULT);
+	group = H5Gopen(file, "/Raw/Reads", H5P_DEFAULT);
+	status = H5Gget_info(group, &ginfo);
+
+	i = 0;
+	size = 1 + H5Lget_name_by_idx(group, ".", H5_INDEX_NAME, H5_ITER_INC, i, NULL, 0, H5P_DEFAULT);
+	name = (char*)malloc(size);
+	size = 1 + H5Lget_name_by_idx(group, ".", H5_INDEX_NAME, H5_ITER_INC, i, name, (size_t)size, H5P_DEFAULT);
+
+	group = H5Gopen(group, name, H5P_DEFAULT);
+	//获取datatype dims
+	dataset=H5Dopen(group,db_name, H5P_DEFAULT);
+	hid_t dataspace = H5Dget_space(dataset);
+	datatype = H5Dget_type(dataset);
+	H5Sget_simple_extent_dims(dataspace, &dims, NULL);
+
+	dim = dims;
+	double *data = (double*)malloc(sizeof(double) * dims);
+
+	//double* data = (double*)malloc(sizeof(double) * dims);
+	H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+	
+	H5Dclose(dataset);
+	H5Gclose(group);
+	H5Fclose(file);
+
+	return data;
+}

@@ -1,23 +1,123 @@
-<UI version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>signaView</class>
- <widget class="QWidget" name="signaView" >
-  <property name="objectName" >
-   <string notr="true">signaView</string>
-  </property>
-  <property name="geometry" >
+ <widget class="QWidget" name="signaView">
+  <property name="geometry">
    <rect>
-	<x>0</x>
-	<y>0</y>
-	<width>400</width>
-	<height>300</height>
+    <x>0</x>
+    <y>0</y>
+    <width>719</width>
+    <height>678</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>signaView</string>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout_5">
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string/>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QGroupBox" name="groupBox_3">
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QPushButton" name="selectFileDirBtn">
+               <property name="text">
+                <string>选择文件夹</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QListWidget" name="selectAllFile"/>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QwtPlot" name="judgeSignalPlot"/>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="displayBtn">
+            <property name="text">
+             <string>显示</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="goodSignalBtn">
+            <property name="text">
+             <string>good</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="badSignalBtn">
+            <property name="text">
+             <string>bad</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
  </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QwtPlot</class>
+   <extends>QFrame</extends>
+   <header>qwt_plot.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
-</UI>
+</ui>

@@ -4,6 +4,7 @@
 
 #include <QVector>
 #include <QMutex>
+#include "Hdf5Read.h"
 
 class TimeSerialData
 {
@@ -14,6 +15,13 @@ public:
 	const double* getPlotX() const;
 	const double* getPlotY() const;
 	int getPlotCount() const;
+
+	void insert();
+
+	//hdf5dataformat
+	Hdf5Read* hdf5file;
+	void timerEnvent();
+
 
 	int getmsstart() {
 		return ms.at(0);

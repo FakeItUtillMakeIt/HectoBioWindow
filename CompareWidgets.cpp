@@ -13,6 +13,7 @@
 #include "QFileDialog"
 #include "qDebug"
 #include "qwt_plot.h"
+#include "QMessageBox"
 
 
 CompareWidgets::CompareWidgets(QWidget *parent)
@@ -62,7 +63,7 @@ void CompareWidgets::selcetFile() {
 	filedialog->setWindowTitle("select file");
 	filedialog->setDirectory(".");
 	//设置文件过滤器
-	filedialog->setNameFilter(tr("Serials File(*.fast5 *.f5 *.txt)"));
+	filedialog->setNameFilter(tr("Serials File(*.fast5 *.h5 *.txt *)"));
 	//可以选择多个文件
 	filedialog->setFileMode(QFileDialog::ExistingFiles);
 	//设置视图模式
@@ -121,8 +122,29 @@ void CompareWidgets::on_compare_btn() {
 		QString file_path = tmp->text();
 		uicw.selectedFile->append(file_path);
 
+		//以fast5文件标识符结尾
+		if (file_path.endsWith("fast5"))
+		{
+			readDataFromONT(file_path.toStdString().c_str(), curve);
+		}
+		else if (file_path.endsWith("h5"))
+		{
+			readDataAsHdf5(file_path.toStdString().c_str(), curve);
+		}
+		else if (file_path.endsWith("txt"))
+		{
+			readDataAsStream(file_path, curve);
+		}
+		else
+		{
+			QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("错误文件类型"), QMessageBox::Yes);
+			return;
+		}
+
 		//readDataAsStream(file_path,curve);
-		readDataAsHdf5(file_path.toStdString().c_str(), curve);
+		//readDataAsHdf5(file_path.toStdString().c_str(), curve);
+		//readDataFromONT(file_path.toStdString().c_str(),curve);
+
 		int ranR, ranG, ranB;
 		ranR = rand() % 255;
 		ranG = rand() % 255;
@@ -206,7 +228,7 @@ void CompareWidgets::readDataAsStream(QString& file_path, QwtPlotCurve* curve) {
 
 	fclose(readfile);
 
-	curve->setSamples(time, val, 500);
+	curve->setSamples(time, val, 499);
 
 }
 
@@ -229,5 +251,25 @@ void CompareWidgets::readDataAsHdf5(const char* read_file, QwtPlotCurve* curve) 
 	qDebug() << val[0] << val[499];
 
 	curve->setSamples(time, val, 499);
+}
+
+//可读ONT
+
+void CompareWidgets::readDataFromONT(const char* read_file, QwtPlotCurve* curve) {
+	Hdf5Read* hdf5read = new Hdf5Read();
+
+	int  dim;
+	
+
+	const char* db_name = "Signal";
+	double* data=hdf5read->read_ont_file(dim, read_file, db_name);
+
+	double* x=(double*)malloc(sizeof(double)*dim);
+	for (int i = 0; i < dim; i++)
+	{
+		*(x+i) = (double)i;
+	}
+
+	curve->setSamples(x, data, dim);
 }
 

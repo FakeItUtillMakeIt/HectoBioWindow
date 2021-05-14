@@ -118,9 +118,6 @@
     <QtUic Include="CompareWidgets.ui" />
     <QtUic Include="HectoBioWindow.ui" />
     <QtMoc Include="HectoBioWindow.h" />
-    <ClCompile Include="Circuit.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="CompareWidgets.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -142,7 +139,6 @@
     <QtMoc Include="CompareWidgets.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Circuit.h" />
     <ClInclude Include="CurveInfo.h" />
     <ClInclude Include="Hdf5Read.h" />
     <ClInclude Include="resource.h" />

@@ -31,6 +31,7 @@ private:
 	void readDataAsText(QString& read_file, double* time, double* showdata);
 	void readDataAsStream(QString& read_file, QwtPlotCurve* curve);
 	void readDataAsHdf5(const char* read_file, QwtPlotCurve* curve);
+	void readDataFromONT(const char* read_file, QwtPlotCurve* curve);
 
 private:
 	QwtPlotCurve* curve1 = new QwtPlotCurve("signal2");

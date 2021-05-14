@@ -7,13 +7,52 @@
 #include <qwt_plot.h>
 #include <QWT/qwt.h>
 #include <qwt_plot_curve.h>
+#pragma comment(lib,"USB2069.lib")
+
 #include <time.h>
 #include "TimeSerialData.h"
 #include "Hdf5Read.h"
-#include "Circuit.h"
+//#include "Circuit.h"
+#include "usb2069.h"
+#include <QThread>
 
 #define CONTINUE_ACQ 1
 #define SINGLE_ACQ 2
+#define DEFAULT_DEVICE_NUM 0
+#define MAX_SEGMENT 5
+
+//读数据线程
+class ReadThread :public QThread
+{
+	Q_OBJECT
+public:
+	ReadThread(QObject* obj);
+
+signals:
+	void readFinish(QString line);
+protected:
+	void run() Q_DECL_OVERRIDE;
+private:
+	QObject* m_obj;
+};
+
+
+//显示线程
+class DisplayThread :public QThread
+{
+	Q_OBJECT
+public:
+	DisplayThread(QObject* obj);
+signals:
+	void displayFinish(QString line);
+protected:
+	void run() Q_DECL_OVERRIDE;
+private:
+	QObject* m_obj;
+
+};
+
+
 
 class HectoBioWindow : public QMainWindow
 {
@@ -24,6 +63,11 @@ public:
 
 	//默认设置连接一个设备
 	bool device_flag;
+	UCHAR devNum;
+	HANDLE linkdevice;
+
+	USB2069_PARA_INIT para_init;
+
 	int selected_chn_sum = 0;
 	int acq_flag = CONTINUE_ACQ;
 
@@ -32,6 +76,8 @@ public:
 	bool disp_up_flag = false;
 	bool disp_down_flag = false;
 
+	bool read_AD_flag = false;
+
 	const float DEFAULT_DPI = 192.0;
 	float winDpiScale();
 
@@ -39,10 +85,14 @@ public:
 	bool selectedChn[24];
 	int trig_mode = 0;
 	int trig_source = 0;
-	int sample_freq = 0;
-	int trig_level = 0;
-	int trig_length = 0;
+	int sample_freq = 24000;
+	int trig_level = 100;
+	int trig_length = 100;
 	int trig_delay = 0;
+
+	int da_freq = 1000;
+	int da_sample = 1000;
+	int da_cycle = 0;
 
 	//DA
 	INT DA0 = 0;
@@ -51,11 +101,43 @@ public:
 	INT DA3 = 3;
 
 	//电路驱动类
-	Circuit* circuit_set;
+	//Circuit* circuit_set;
+	long read_data_length = 1024 * 100;
+	bool softTrig = false;
+	USHORT* dataBuff[MAX_SEGMENT];
+	BOOL NewSegmentData[MAX_SEGMENT];
+	int ReadIndex;//数据采集线程当前缓冲区索引号
+	int CurrentIndex;//数据处理线程当前缓冲区索引号
+	BOOL ADRun;//正在采集标志
+	HANDLE hEvent;//事件
+	int display_chn;//显示的通道
+	ULONG discnt;//显示的点数
+	ULONG samcnt;
+
+	//显示读取线程
+	ReadThread* m_readThread;
+	DisplayThread* m_displayThread;
+
+	
+
+	//读取和显示数据
+	bool ctn_display = false;
+	void readAD_data();
+	void displayAD_data();
+	//更新显示的AD数据
+	bool updateAD_data(PUSHORT data_buf);
+
+	BOOL readUSB(PUSHORT pBuf, int bufsize);
+	void setTrigPara(bool set);
+
 
 	//数据保存类
 	Hdf5Read* hdf5_op;
 	const char* db_name = "Dataset";
+
+signals:
+	void startReadThread();
+	void startDisplayThread();
 
 private slots:
 	//信号显示窗口槽函数
@@ -66,6 +148,9 @@ private slots:
 	void on_hurry_btn();
 	void on_slow_btn();
 
+	//test
+	void test_readthread(QString line);
+	void test_displaythread(QString line);
 
 private slots:
 	//menu子窗口槽函数
@@ -125,11 +210,13 @@ private:
 
 private:
 	//电路驱动部分
-	void init_circuit(Circuit* circuit_set);
-	//更新显示的AD数据
-	bool updateAD_data(PUSHORT data_buf);
+	//void init_circuit(Circuit* circuit_set);
+	void init_circuit();
 
-	void saveDataAsStream(QString& filename, double* savedata);
-	void saveDataAsText(QString& filename, double* savedata);
-	void saveDataAsHdf5(const char* filename, double* savedata);
+	
+
+	void saveDataAsStream(QString& save_name, double* savedata);
+	void saveDataAsText(QString& save_name, double* savedata);
+	void saveDataAsHdf5(const char* save_name, double* savedata);
 };
+

@@ -31,9 +31,9 @@ public:
 	//AD设备
 
 	//read_data_length
-	int read_data_length = 0;
+	ULONG read_data_length;
 	//设备号  默认只连接一个 所以为0
-	UCHAR DeviceNO=0;
+	CONST UCHAR DEFAULT_DEVICE_NUM=0;
 	HANDLE link_device =nullptr;
 	//初始化AD返回信息
 	char* ret_flag;
@@ -59,11 +59,9 @@ public:
 	bool recover_ADoffset(LONG AD_offset, bool WtRdflag = 0,int Chn=0);
 	//读取
 	bool get_bufover(PLONG pBufOVer);
-	bool get_freq(double freq=0);
-	bool read_AD(PUSHORT data_buffer, LONG data_length);
+	bool get_freq(double* freq);
+	bool read_AD(PUSHORT data_buffer, ULONG data_length);
 
-	bool set_DA(int DA_num, bool DA_enable, int DA_freq,
-		bool DA_loop, int DA_cycleCnt, bool DA_stopflag, PUSHORT DA_buf,
-		int DA_cyclePoint);
+	bool set_DA(int DA_num, bool DA_enable, long DA_freq, bool DA_loop, int DA_cycleCnt, bool DA_stopflag, PUSHORT DA_buf, int DA_cyclePoint);
 };
 

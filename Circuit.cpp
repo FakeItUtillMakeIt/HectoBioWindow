@@ -2,31 +2,48 @@
 
 
 void Circuit::init_circuit_para() {
-	//通道默认全为0
+	//通道默认所有通道
 	for (int i=0;i<24;i++)
 	{
-		channel[i] = false;
+		para_init.lEnCh[i] = true;
 	}
+
+	//触发源
+	para_init.TriggerSource = TRIG_SRC_EXT_RISING;
+	//采集模式
+	para_init.TriggerMode = TRIG_MODE_CONTINUE;
+	//采样率
+	para_init.ADFREQ = 240000;
+	//触发长度
+	para_init.TriggerLength = 10;
+	para_init.TriggerDelay = 0;
+	para_init.TriggerLevel = 2048;
+	
+
+	return;
 }
 
 bool Circuit::init_usb2069_AD() {
 	return 0;
 }
 
-bool Circuit::judge_high_usbdevice(PUCHAR hign_device) {
+bool Circuit::judge_high_usbdevice(PUCHAR high_device) {
 	//UCHAR hign_device = 1;
-	bool is_highdevice = USB2069_IsHighDevice(link_device, hign_device);
+	bool is_highdevice = USB2069_IsHighDevice(link_device, high_device);
 	if (is_highdevice)
 	{
 		return true;
 	}
 	return false;
 }
+
+
 int Circuit::judge_link_device() {
 	
-	link_device = USB2069_Link(DeviceNO);
+	link_device = USB2069_Link(DEFAULT_DEVICE_NUM);
 	if (link_device !=INVALID_HANDLE_VALUE)
 	{
+		device_flag = true;
 		return true;
 	}
 	else
@@ -37,7 +54,7 @@ int Circuit::judge_link_device() {
 }
 bool Circuit::judge_unlink_device() {
 	
-	link_device = USB2069_Link(DeviceNO);
+	//link_device = USB2069_Link(DEFAULT_DEVICE_NUM);
 	BOOL unlink_flag = USB2069_UnLink(link_device);
 	if (!unlink_flag)
 	{
@@ -50,18 +67,18 @@ bool Circuit::judge_unlink_device() {
 //启动AD采集之后，主界面才能获取数据
 bool Circuit::init_start_AD_device() {
 
-	device_flag = judge_link_device();
+	//device_flag = judge_link_device();
 	if (!device_flag)
 	{
-		ret_flag = "未检测到设备，请连接设备";
+		ret_flag = "读取输入设备失败";
 		return false;
 	}
 
-	link_device = USB2069_Link(DeviceNO);
 	//更新选中通道
 	for (int i=0;i<24;i++)
 	{
 		para_init.lEnCh[i] = LONG(channel[i]);
+		
 	}
 
 	//更新触发模式
@@ -69,10 +86,13 @@ bool Circuit::init_start_AD_device() {
 	{
 	case 0:
 		para_init.TriggerMode = TRIG_MODE_CONTINUE;
+		break;
 	case 1:
 		para_init.TriggerMode = TRIG_MODE_POST;
+		break;
 	case 2:
 		para_init.TriggerMode = TRIG_MODE_DELAY;
+		break;
 	default:
 		para_init.TriggerMode=TRIG_MODE_CONTINUE;
 	}
@@ -82,10 +102,13 @@ bool Circuit::init_start_AD_device() {
 	{
 	case 0:
 		para_init.TriggerSource = TRIG_SRC_EXT_RISING;
+		break;
 	case 1:
 		para_init.TriggerSource = TRIG_SRC_EXT_FALLING;
+		break;
 	case 2:
 		para_init.TriggerSource = TRIG_SRC_SOFT;
+		break;
 	default:
 		para_init.TriggerSource = TRIG_SRC_EXT_RISING;
 	}
@@ -103,7 +126,7 @@ bool Circuit::init_start_AD_device() {
 	init_AD_flag= USB2069_InitAD(link_device,&para_init);
 	if (!init_AD_flag)
 	{
-		ret_flag = "初始化AD失败，请连接设备";
+		ret_flag = "初始化AD失败，请检测设备";
 		return false;
 	}
 	else
@@ -114,8 +137,10 @@ bool Circuit::init_start_AD_device() {
 
 	return 0;
 }
+
+
 bool Circuit::stop_AD_device() {
-	USB2069_StopAD(link_device,DeviceNO);
+	USB2069_StopAD(link_device,DEFAULT_DEVICE_NUM);
 	return 0;
 }
 
@@ -176,44 +201,44 @@ bool Circuit::get_bufover(PLONG pBufOVer) {
 //freq[0]返回测频通道1值，freq[1]返回测频通道2值，
 //freq[2]返回测频通道3值，freq[3]返回测频通道4值，
 //频率数值=FRQ_BASE_CLOCK/freq[n]
-bool Circuit::get_freq(double freq) {
-	PLONG pData;
+bool Circuit::get_freq(double* freq) {
+	LONG pData[4];
 	bool freqflag = USB2069_GetFreq(link_device, pData);
 	if (freqflag)
 	{
 		char output[100];
 		if (pData[0]>0)
 		{
-			freq = (double)FRQ_BASE_CLOCK/(double)pData[0];
+			*freq = (double)FRQ_BASE_CLOCK/(double)pData[0];
 			
 		}
 		else
 		{
-			freq = 0;
+			*freq = 0;
 		}
 		if (pData[1]>0)
 		{
-			freq = (double)FRQ_BASE_CLOCK / (double)pData[1];
+			*freq = (double)FRQ_BASE_CLOCK / (double)pData[1];
 		}
 		else 
 		{
-			freq = 0;
+			*freq = 0;
 		}
 		if (pData[2] > 0)
 		{
-			freq = (double)FRQ_BASE_CLOCK / (double)pData[2];
+			*freq = (double)FRQ_BASE_CLOCK / (double)pData[2];
 		}
 		else
 		{
-			freq = 0;
+			*freq = 0;
 		}
 		if (pData[3] > 0)
 		{
-			freq = (double)FRQ_BASE_CLOCK / (double)pData[3];
+			*freq = (double)FRQ_BASE_CLOCK / (double)pData[3];
 		}
 		else
 		{
-			freq = 0;
+			*freq = 0;
 		}
 
 		return true;
@@ -225,31 +250,35 @@ bool Circuit::get_freq(double freq) {
 //按照FCFR_USB_2069说明书说明
 //AD数据应该转为实际数据
 //转换公式：v_value=10.0*AD_data/0xFFFF-5.0
-bool Circuit::read_AD(PUSHORT data_buffer,LONG data_length) {
-	init_start_AD_device();
-	bool read_data_flag=USB2069_ReadAD(link_device, data_buffer, data_length);
-	
-	if (!read_data_flag)
+bool Circuit::read_AD(PUSHORT data_buffer,ULONG data_length) {
+	if (init_AD_flag)
 	{
-		ret_flag="读取AD失败";
-		return false;
+		bool read_data_flag = USB2069_ReadAD(link_device, data_buffer, data_length);
+
+		if (!read_data_flag)
+		{
+			ret_flag = "读取AD失败";
+			return false;
+		}
+		else {
+			ret_flag = "读取AD成功";
+		}
+		
+		stop_AD_device();
+		return true;
 	}
-	stop_AD_device();
-	return true;
+	
 }
 
 //设置DA 数字转模拟  24位
-bool Circuit::set_DA(int DA_num, bool DA_enable, int DA_freq, 
-	bool DA_loop, int DA_cycleCnt, bool DA_stopflag,PUSHORT DA_buf, 
-	int DA_cyclePoint) {
+bool Circuit::set_DA(int DA_num, bool DA_enable, long DA_freq, bool DA_loop, int DA_cycleCnt, bool DA_stopflag,PUSHORT DA_buf, int DA_cyclePoint) {
 	//设置USB_DA参数
 	
-	bool set_DA_flag=USB2069_SetDA(link_device, DA_num, DA_enable, PLONG(DA_freq), 
-		DA_loop, DA_cycleCnt, DA_stopflag, DA_buf, DA_cyclePoint);
-	if (set_DA_flag)
-	{
-		return true;
-	}
-	return false;
+	/*bool set_DA_flag=USB2069_SetDA(link_device, DA_num, DA_enable, &DA_freq,
+		DA_loop, DA_cycleCnt, DA_stopflag, DA_buf, DA_cyclePoint);*/
+	bool set_DA_flag = USB2069_SetDA(link_device, DA_num, DA_enable, &DA_freq,
+		DA_loop, DA_cycleCnt, DA_stopflag, DA_buf,DA_cyclePoint);
+	
+	return set_DA_flag;
 }
 

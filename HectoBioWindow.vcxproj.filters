@@ -47,9 +47,6 @@
     <ClCompile Include="CompareWidgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Circuit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CurveInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,9 +72,6 @@
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Circuit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CurveInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1255</width>
-    <height>655</height>
+    <width>1334</width>
+    <height>855</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -749,6 +749,9 @@
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_18">
                   <item>
+                   <widget class="QLineEdit" name="da_offset_voltage"/>
+                  </item>
+                  <item>
                    <spacer name="verticalSpacer">
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
@@ -887,7 +890,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1255</width>
+     <width>1334</width>
      <height>23</height>
     </rect>
    </property>
@@ -900,6 +903,9 @@
     </property>
    </widget>
    <widget class="QMenu" name="menu_signalView_widget">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="styleSheet">
      <string notr="true">font: 75 12pt &quot;Agency FB&quot;;
 </string>

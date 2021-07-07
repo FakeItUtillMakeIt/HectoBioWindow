@@ -612,23 +612,30 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 	ReadIndex = 0;
 
 	ADRun = TRUE;
-	bool display_flag = ui.ctnscqDisplay->isChecked();
-	bool save_flag = !display_flag;
+	display_flag = ui.ctnscqDisplay->isChecked();
+	save_flag = !display_flag;
 	//创建读取线程和显示线程
 	if (ADRun && save_flag)
 	{
-		this->m_readThread = new ReadThread(this);
-		this->m_readThread->start();
-		connect(this->m_readThread, SIGNAL(readFinish(&HectoBioWindow)), this, SLOT(test_readthread(&HectoBioWindow)));
+		m_readThread = new ReadThread(this);
+		//修改传递信号 需要传递设备号和通道号
+		connect(this, SIGNAL(startReadThread(QString)), m_readThread, SLOT(recvMegFromMain(QString)));
+		//m_readThread->start();
+		//
 		//connect(this->m_readThread, SIGNAL(finished()), this, SLOT(FinishThread()));
-
+		emit startReadThread(QString("你好，保存子线程"));
+		m_readThread->start();
 	}
 	else if (ADRun && display_flag)
 	{
-		this->m_displayThread = new DisplayThread(this);
-		this->m_displayThread->start();
-		connect(this->m_displayThread, SIGNAL(displayFinish(&HectoBioWindow)), this, SLOT(test_displaythread(&HectoBioWindow)));
+		m_displayThread = new DisplayThread(this);
+		connect(this, SIGNAL(startDisplayThread(QString)), m_displayThread, SLOT(recvMegFromMain(QString)));
+		//
+		//m_displayThread->start();
 		//connect(this->m_displayThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+		emit startDisplayThread(QString("你好，显示子线程"));
+		m_displayThread->start();
+		
 	}
 	
 
@@ -731,6 +738,34 @@ void HectoBioWindow::on_stopCtnAcq_btn() {
 				ui.textBrowser->append(QString::fromLocal8Bit("关闭AD成功"));
 			}
 	}
+	
+	if (ADRun && save_flag)
+	{
+		connect(this, SIGNAL(stopReadThread(bool)), m_readThread, SLOT(recvStopSignal(bool)));
+		connect(m_readThread, SIGNAL(readFinish(QString)), this, SLOT(test_readthread(QString)));
+		save_flag = false;
+		display_flag = false;
+		m_readThread->quit();
+		m_readThread->destroyed();
+		emit stopReadThread(true);
+		emit m_readThread->readFinish("save end");
+	}
+	else if (ADRun && display_flag)
+	{
+		connect(this, SIGNAL(stopDisplayThread(bool)), m_displayThread, SLOT(recvStopSignal(bool)));
+		connect(m_displayThread, SIGNAL(displayFinish(QString)), this, SLOT(test_displaythread(QString)));
+		save_flag = false;
+		display_flag = false;
+		m_displayThread->quit();
+		m_displayThread->destroyed();
+		emit stopDisplayThread(true);
+		emit m_displayThread->displayFinish("display end");
+	}
+	
+	//emit readFinish(QString("have benn displayed"));
+	//QThread::msleep(15);
+	//emit displayFinish(QString("have benn displayed"));
+	//QThread::msleep(15);
 	
 	//使能采集参数按钮
 	setTrigPara(true);
@@ -1528,33 +1563,56 @@ void HectoBioWindow::saveDataAsHdf5(const char* save_name, double* savedata) {
 }
 
 void HectoBioWindow::test_readthread(QString line) {
-	ui.textBrowser->append("save");
+	ui.textBrowser->append(line);
 	
 }
 
 void HectoBioWindow::test_displaythread(QString line) {
-	ui.textBrowser->append("display");
+	ui.textBrowser->append(line);
 }
 
 ReadThread::ReadThread(QObject* obj) :
 	m_obj(obj) {
-
+	linkdevice = 0;
+	
 }
 
+//读取线程
 void ReadThread::run() {
 	//读取线程需要做的事
 	//QString readf = QString::fromLocal8Bit("读取数据中...");
 	//读取函数
-	
+
+
 	//读取完毕之后，发出读取完毕信号
 	//emit readFinish(readf);
-	emit readFinish(NULL);
-	QThread::msleep(15);
+
+	//emit readFinish(QString("have been save!"));
+	while (!stop_flag)
+	{
+		qDebug() << "run in save thread" << endl;
+		QThread::msleep(100);
+	}
+
 }
 
+void ReadThread::recvMegFromMain(QString line) {
+	qDebug() << "save thread has recieve " << line.toStdString().c_str()<<endl;
+}
+
+void ReadThread::recvStopSignal(bool stop_flag) {
+
+	//this->wait();
+	this->stop_flag = stop_flag;
+	
+	qDebug() << "stop save thread" << endl;
+}
+
+
+//显示线程
 DisplayThread::DisplayThread(QObject* obj):
 	m_obj(obj){
-	
+	linkdevice = 0;
 }
 
 void DisplayThread::run() {
@@ -1565,9 +1623,20 @@ void DisplayThread::run() {
 
 	////显示完毕（）之后，发出显示完毕信号
 	//emit displayFinish(displayf);
-	emit displayFinish(NULL);
-	QThread::msleep(15);
+	/*emit displayFinish(QString("have benn displayed"));
+	QThread::msleep(15);*/
+	while (!stop_flag)
+	{
+		qDebug() << "run in display thread" << endl;
+	}
 }
 
+void DisplayThread::recvMegFromMain(QString line) {
+	qDebug() << "display thread has recieve" << line.toStdString().c_str() << endl;
+}
 
+void DisplayThread::recvStopSignal(bool stop_flag) {
+	this->stop_flag = stop_flag;
 
+	qDebug() << "stop display thread" << endl;
+}

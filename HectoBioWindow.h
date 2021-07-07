@@ -27,11 +27,21 @@ class ReadThread :public QThread
 	Q_OBJECT
 public:
 	ReadThread(QObject* obj);
+	HANDLE linkdevice;
+	USHORT* dataBuff[MAX_SEGMENT];
+	BOOL NewSegmentData[MAX_SEGMENT];
+	long read_data_length = 1024 * 100;
+	bool stop_flag=false;
+	
 
 signals:
 	void readFinish(QString line);
 protected:
 	void run() Q_DECL_OVERRIDE;
+
+public slots:
+	void recvMegFromMain(QString line);
+	void recvStopSignal(bool stop_flag);
 private:
 	QObject* m_obj;
 };
@@ -43,10 +53,20 @@ class DisplayThread :public QThread
 	Q_OBJECT
 public:
 	DisplayThread(QObject* obj);
+	HANDLE linkdevice;
+	USHORT* dataBuff[MAX_SEGMENT];
+	BOOL NewSegmentData[MAX_SEGMENT];
+	long read_data_length = 1024 * 100;
+	bool stop_flag = false;
+
 signals:
 	void displayFinish(QString line);
 protected:
 	void run() Q_DECL_OVERRIDE;
+
+public slots:
+	void recvMegFromMain(QString line);
+	void recvStopSignal(bool stop_flag);
 private:
 	QObject* m_obj;
 
@@ -67,6 +87,10 @@ public:
 	HANDLE linkdevice;
 
 	USB2069_PARA_INIT para_init;
+
+	bool display_flag = false;
+	bool save_flag = false;
+	bool ctn_stop_flag = false;
 
 	int selected_chn_sum = 0;
 	int acq_flag = CONTINUE_ACQ;
@@ -136,8 +160,10 @@ public:
 	const char* db_name = "Dataset";
 
 signals:
-	void startReadThread();
-	void startDisplayThread();
+	void startReadThread(QString line);
+	void startDisplayThread(QString line);
+	void stopReadThread(bool stop_flag);
+	void stopDisplayThread(bool stop_flag);
 
 private slots:
 	//信号显示窗口槽函数

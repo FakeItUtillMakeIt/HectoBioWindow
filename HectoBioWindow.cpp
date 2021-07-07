@@ -17,6 +17,8 @@
 #include <QThread>
 #include <windows.h>
 #include "stdio.h"
+
+
 //#include "usb2069.h"
 
 
@@ -44,7 +46,7 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	updateAD_data(NULL);
 
 	ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
-	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
+	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "voltage / mV");
 	ui.signalPlot->setAxisTitle(QwtPlot::xBottom, "time / mS");
 
 
@@ -369,12 +371,14 @@ void HectoBioWindow::init_circuit() {
 
 			
 			ui.textBrowser->append(QString::fromLocal8Bit("已连接设备号:")+QString::number(devNum));
+			qDebug() << linkdevice << endl;
+			device_flag = true;
 
 			return;
 		}
 	}
 	ui.textBrowser->append(QString::fromLocal8Bit("未连接设备，请检查或重新插拔设备"));
-
+	device_flag = false;
 	return;
 }
 
@@ -574,6 +578,7 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 	setTrigPara(false);
 
 	//记得添加数据更新和图像实时显示
+	//放在线程中
 	if (para_init.TriggerMode==TRIG_SRC_SOFT)
 	{
 		softTrig = true;
@@ -612,35 +617,112 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 	ReadIndex = 0;
 
 	ADRun = TRUE;
-	bool display_flag = ui.ctnscqDisplay->isChecked();
-	bool save_flag = !display_flag;
+	display_flag = ui.ctnscqDisplay->isChecked();
+	save_flag = !display_flag;
 	//创建读取线程和显示线程
 	if (ADRun && save_flag)
 	{
-		this->m_readThread = new ReadThread(this);
-		this->m_readThread->start();
-		connect(this->m_readThread, SIGNAL(readFinish(&HectoBioWindow)), this, SLOT(test_readthread(&HectoBioWindow)));
+		m_readThread = new ReadThread(this);
+		//修改传递信号 需要传递设备号和通道号
+		connect(this, SIGNAL(startReadThread(QString,HANDLE&)), m_readThread, SLOT(recvMegFromMain(QString,HANDLE&)));
+		//m_readThread->start();
+		//
 		//connect(this->m_readThread, SIGNAL(finished()), this, SLOT(FinishThread()));
-
+		emit startReadThread(QString("你好，保存子线程"),linkdevice);
+		m_readThread->start();
 	}
 	else if (ADRun && display_flag)
 	{
-		this->m_displayThread = new DisplayThread(this);
-		this->m_displayThread->start();
-		connect(this->m_displayThread, SIGNAL(displayFinish(&HectoBioWindow)), this, SLOT(test_displaythread(&HectoBioWindow)));
-		//connect(this->m_displayThread, SIGNAL(finished()), this, SLOT(FinishThread()));
-	}
+		//初始化signalPlot
+		/*USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+		for (int i=0;i<500;i++)
+		{
+			display_time[i] = i;
+			double level = (inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+			level = (level * (double)1000 + 0.5977) / 0.9854;
+			display_val[i] = level;
+		}*/
+		
+		displaySample_freq = sample_freq;
+		curve->detach();
+		for (int i=0;i<READ_DATA_LENGTH;i++)
+		{
+			display_xs.append(i);
+			display_ys.append(0);
+			factDisplayData.append(0);
+		}
+		display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+		curve->setData(display_xy_data);
+		curve->attach(ui.signalPlot);
+		ui.signalPlot->replot();
+		//
+		//qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
+		displayUpdateTimer = new QTimer(this);
+		connect(displayUpdateTimer, &QTimer::timeout, this, &HectoBioWindow::timerUpdate);
 	
+		//dispay_timer = this->startTimer(100);
 
-	
-	//delete内存
-	for (i=0;i<MAX_SEGMENT;i++)
-	{
-		delete[] dataBuff[i];
+		m_displayThread = new DisplayThread(this);
+		connect(this, SIGNAL(startDisplayThread(QString,HANDLE&)), m_displayThread, SLOT(recvMegFromMain(QString,HANDLE&)));
+		//
+		emit startDisplayThread(QString("你好，显示子线程"), linkdevice);
+
+		m_displayThread->start();
+		displayUpdateTimer->start(10);//0.001s更新一次
+		//connect(this->m_displayThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+		
+		//delete display_xy_data;
 	}
+	
 
 	return;
 }
+
+void HectoBioWindow::timerUpdate() {
+	
+	//方法一  仅使用定时器
+	//bool status=USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+
+	//if (status)
+	//{
+	//	
+	//	for (int i = 0; i < 500; i++)
+	//	{
+	//		display_time[i] = i;
+	//		double level = (inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+	//		level = (level * (double)1000 + 0.5977) / 0.9854;
+	//		display_val[i] = level;
+	//		 
+	//	}
+	//	
+	//	curve->setSamples(display_time, display_val, 500);
+	//	//curve->setSamples(time, displayDataBuff[CurrentIndex], 500);
+	//	ui.signalPlot->replot();
+	//}
+	//方法二  子线程更新数据，定时器更新显示  //数据更新需要根据选中频率动态调整
+	int sam = 1000;
+	for (int i = 0; i < READ_DATA_LENGTH - sam; i++)
+	{
+		display_ys[i] = display_ys[i + sam];
+
+	}
+
+	
+	//display_ys[READ_DATA_LENGTH - 1] = qrand()%500;
+	for (int k = sam; k > 0; k--)
+	{
+		display_ys[READ_DATA_LENGTH - k] = factDisplayData[sam- k];
+	}
+	display_xy_data=new QwtPointArrayData(display_xs,display_ys);
+	curve->setData(display_xy_data);
+	//curve->attach(ui.signalPlot);
+	ui.signalPlot->replot();
+
+	//delete display_xy_data;
+
+	//方法三，窗口分离，不会造成卡顿
+}
+
 
 void HectoBioWindow::readAD_data() {
 	PSHORT inBuffer = NULL;
@@ -662,14 +744,6 @@ void HectoBioWindow::readAD_data() {
 		data[i] = data[i] * 1000;
 		data[i] = (data[i] + 0.5977) / 0.9854;
 	}
-
-	if (stutas)
-	{
-		saveDataAsText(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\信号文件\\CH1.h5"), data);
-		//saveDataAsStream(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\信号文件\\CH1.h5"), data);
-		//saveDataAsHdf5("C:\\Users\\LJ\\Desktop\\信号文件\\CH1.h5", data);
-	}
-
 
 }
 	
@@ -731,6 +805,41 @@ void HectoBioWindow::on_stopCtnAcq_btn() {
 				ui.textBrowser->append(QString::fromLocal8Bit("关闭AD成功"));
 			}
 	}
+	
+	if (ADRun && save_flag)
+	{
+		connect(this, SIGNAL(stopReadThread(bool)), m_readThread, SLOT(recvStopSignal(bool)));
+		connect(m_readThread, SIGNAL(readFinish(QString)), this, SLOT(test_readthread(QString)));
+		save_flag = false;
+		display_flag = false;
+		m_readThread->quit();
+		m_readThread->destroyed();
+		emit stopReadThread(true);
+		emit m_readThread->readFinish("save end");
+		//
+	}
+	else if (ADRun && display_flag)
+	{
+		
+		connect(this, SIGNAL(stopDisplayThread(bool)), m_displayThread, SLOT(recvStopSignal(bool)));
+		connect(m_displayThread, SIGNAL(displayFinish(QString)), this, SLOT(test_displaythread(QString)));
+		
+		save_flag = false;
+		display_flag = false;
+		m_displayThread->quit();
+		m_displayThread->destroyed();
+		emit stopDisplayThread(true);
+		emit m_displayThread->displayFinish("display end");
+		//this->killTimer(dispay_timer);
+		displayUpdateTimer->stop();
+		ui.signalPlot->destroyed();
+		curve->detach();
+	}
+	
+	//emit readFinish(QString("have benn displayed"));
+	//QThread::msleep(15);
+	//emit displayFinish(QString("have benn displayed"));
+	//QThread::msleep(15);
 	
 	//使能采集参数按钮
 	setTrigPara(true);
@@ -964,16 +1073,21 @@ void HectoBioWindow::on_DA0_btn() {
 
 
 	PUSHORT data_buf = NULL;
-	data_buf=new USHORT[read_data_length];
+	data_buf=new USHORT[da0point];
 	
 	if (da0cycle > 0)
 	{
 		da0enable_cycle = true;
 	}
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i=0;i<da0point;i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	bool ret_DA_flag = 0;
 
-	ret_DA_flag=USB2069_SetDA(linkdevice, DA0, da0enable, &da0freq, da0enable_cycle, da0cycle, stopflag, data_buf, da0point);
+	ret_DA_flag=USB2069_SetDA(linkdevice, DA0, da0enable, &da0freq, da0enable_cycle, da0cycle, DA_END_NO_PRD, data_buf, da0point);
 
 	if (ret_DA_flag)
 	{
@@ -1013,14 +1127,19 @@ void HectoBioWindow::on_DA1_btn() {
 	da1enable = ui.da1start->checkState();
 	bool da1enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da1point];
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i = 0; i < da1point; i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	if (da1cycle > 0)
 	{
 		da1enable_cycle = true;
 	}
 
-	bool ret_DA_flag = USB2069_SetDA(linkdevice, DA1, da1enable, &da1freq, da1enable_cycle, da1cycle, stopflag, data_buf, da1point);
+	bool ret_DA_flag = USB2069_SetDA(linkdevice, DA1, da1enable, &da1freq, da1enable_cycle, da1cycle, DA_END_NO_PRD, data_buf, da1point);
 	if (ret_DA_flag)
 	{
 		ui.textBrowser->append(QString::fromLocal8Bit("DA1设置完毕"));
@@ -1056,13 +1175,13 @@ void HectoBioWindow::on_DA2_btn() {
 	da2enable = ui.da2start->checkState();
 	bool da2enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da2point];
 
-	USHORT offset_value = ui.da_offset_voltage->text().toInt();
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
 	
-	for (int i=0;i<read_data_length;i++)
+	for (int i=0;i<da2point;i++)
 	{
-		data_buf[i] = offset_value;
+		data_buf[i] =(WORD) offset_value;
 	}
 
 	if (da2cycle > 0)
@@ -1071,7 +1190,7 @@ void HectoBioWindow::on_DA2_btn() {
 	}
 
 	bool ret_DA_flag = 0;
-	ret_DA_flag = USB2069_SetDA(linkdevice, DA2, da2enable, &da2freq, da2enable_cycle, da2cycle, stopflag, data_buf, da2point);
+	ret_DA_flag = USB2069_SetDA(linkdevice, DA2, da2enable, &da2freq, da2enable_cycle, da2cycle, DA_END_NO_PRD, data_buf, da2point);
 	if (ret_DA_flag)
 	{
 		ui.textBrowser->append(QString::fromLocal8Bit("DA2设置完毕"));
@@ -1108,7 +1227,12 @@ void HectoBioWindow::on_DA3_btn() {
 	da3enable = ui.da3start->checkState();
 	bool da3enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da3point];
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i = 0; i < da3point; i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	if (da3cycle > 0)
 	{
@@ -1116,7 +1240,7 @@ void HectoBioWindow::on_DA3_btn() {
 	}
 
 	bool ret_DA_flag = 0;
-	ret_DA_flag = USB2069_SetDA(linkdevice, DA3, da3enable, &da3freq, da3enable_cycle, da3cycle, stopflag, data_buf, da3point);
+	ret_DA_flag = USB2069_SetDA(linkdevice, DA3, da3enable, &da3freq, da3enable_cycle, da3cycle, DA_END_NO_PRD, data_buf, da3point);
 	if (ret_DA_flag)
 	{
 		ui.textBrowser->append(QString::fromLocal8Bit("DA3设置完毕"));
@@ -1277,18 +1401,48 @@ void HectoBioWindow::on_clearinfo_btn() {
 //随机产生初始信号，仅用于电路未到时测试
 ***************************************************/
 void HectoBioWindow::timerEvent(QTimerEvent*) {
-	savetestSignal = new double[500];
-
-	for (int i = 0; i < 499; i++)
+	
+	double level;
+	for (int i = 0; i < 49990; i++)
 	{
 		val[i] = val[i + 1];
-		savetestSignal[i] = val[i];
+		ys[i] = ys[i + 1];
 	}
-	val[499] = qrand() % 500;
-	curve->setSamples(time, val, 500);
+	val[49990] = qrand()%50000;
+	ys[49990] = qrand() % 50000;
+	ys[49991] = qrand() % 50000;
+	ys[49992] = qrand() % 50000;
+	ys[49993] = qrand() % 50000;
+	ys[49994] = qrand() % 50000;
+	ys[49995] = qrand() % 50000;
+	ys[49996] = qrand() % 50000;
+	ys[49997] = qrand() % 50000;
+	ys[49998] = qrand() % 50000;
+	ys[49999] = qrand() % 50000;
+	
+	//curve->setSamples(time, val, 500);
+	QwtPointArrayData* displaydata = new QwtPointArrayData(xs, ys);
+	curve->setData(displaydata);
 	ui.signalPlot->replot();
+	// 
+	//PUSHORT inBuffer = new USHORT[read_data_length];
+	//bool status = USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
 
-	return;
+	//if (status)
+	//{
+	//	for (int i = 0; i < 500; i++)
+	//	{
+	//		display_time[i] = i;
+	//		double level = (inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+	//		level = (level * (double)1000 + 0.5977) / 0.9854;
+	//		display_val[i] = level;
+	//	}
+
+	//	curve->setSamples(display_time, display_val, 500);
+	//	//curve->setSamples(time, displayDataBuff[CurrentIndex], 500);
+	//	ui.signalPlot->replot();
+	//}
+	
 }
 
 
@@ -1300,7 +1454,17 @@ void HectoBioWindow::on_disp_btn() {
 	disp_show_flag = true;
 	//ui.signaldispOpenGL->DrawWindowBackground();
 	//QwtPlot* myplot = new QwtPlot("curve display");
-	curve->setSamples(time, val, 500);
+
+	for (int i=0;i<50000;i++)
+	{
+		time[i] = i;
+		val[i] = qrand() % 500;
+		xs.append(i);
+		ys.append(0);
+	}
+	QwtPointArrayData* const displaydata = new QwtPointArrayData(xs, ys);
+	//curve->setSamples(time, val, 500);
+	curve->setData(displaydata);
 	curve->attach(ui.signalPlot);
 	ui.signalPlot->replot();
 	ui.textBrowser->append(QString::fromLocal8Bit("开始显示"));
@@ -1353,6 +1517,12 @@ void HectoBioWindow::on_stop_btn() {
 	zoomer->setMousePattern(QwtEventPattern::MouseSelect2, Qt::RightButton, Qt::ControlModifier);
 
 	zoomer->setEnabled(true);
+
+	//delete内存
+	for (int i = 0; i < MAX_SEGMENT; i++)
+	{
+		delete[] dataBuff[i];
+	}
 
 	return;
 
@@ -1528,46 +1698,109 @@ void HectoBioWindow::saveDataAsHdf5(const char* save_name, double* savedata) {
 }
 
 void HectoBioWindow::test_readthread(QString line) {
-	ui.textBrowser->append("save");
+	ui.textBrowser->append(line);
 	
 }
 
 void HectoBioWindow::test_displaythread(QString line) {
-	ui.textBrowser->append("display");
+	ui.textBrowser->append(line);
 }
 
 ReadThread::ReadThread(QObject* obj) :
 	m_obj(obj) {
-
+	linkdevice = 0;
+	this->stop_flag = false;
 }
 
+//读取线程
 void ReadThread::run() {
 	//读取线程需要做的事
 	//QString readf = QString::fromLocal8Bit("读取数据中...");
 	//读取函数
 	
+
 	//读取完毕之后，发出读取完毕信号
 	//emit readFinish(readf);
-	emit readFinish(NULL);
-	QThread::msleep(15);
+
+	//emit readFinish(QString("have been save!"));
+	while (!stop_flag)
+	{
+		PUSHORT inBuffer = new USHORT[read_data_length];
+		
+		//qDebug() << "run in save thread" << endl;
+		bool stutas=USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+		double level = double(inBuffer[0] - 32768) * (1.0 / 32768.0) * 10;
+		level = (level * (double)1000 + 0.5977) / 0.9854;
+		qDebug() << level <<"mv"<< endl;
+		QThread::msleep(100);
+		delete[] inBuffer;
+	}
+
 }
 
+void ReadThread::recvMegFromMain(QString line,HANDLE& linkdevice) {
+	qDebug() << "save thread has recieve " << line.toStdString().c_str()<<endl;
+	this->linkdevice = linkdevice;
+	qDebug()<<linkdevice<<endl;
+}
+
+void ReadThread::recvStopSignal(bool stop_flag) {
+
+	//this->wait();
+	this->stop_flag = stop_flag;
+	
+	qDebug() << "stop save thread" << endl;
+}
+
+
+//显示线程
 DisplayThread::DisplayThread(QObject* obj):
 	m_obj(obj){
-	
+	linkdevice = 0;
+	/*SignalDisplay* showWindow = new SignalDisplay(nullptr);
+	showWindow->show();*/
 }
 
 void DisplayThread::run() {
-	//显示线程需要做的事
+	//显示线程需要做的事   线程数据传递至qwtplotcurve？
+	// 
 	//QString displayf = QString::fromLocal8Bit("显示数据中...");
-	////显示函数
-	//
 
-	////显示完毕（）之后，发出显示完毕信号
-	//emit displayFinish(displayf);
-	emit displayFinish(NULL);
-	QThread::msleep(15);
+
+	PUSHORT inBuffer = new USHORT[read_data_length];
+	while (!stop_flag)
+	{
+
+		//qDebug() << "run in save thread" << endl;
+		bool stutas = USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+		if (stutas) {
+			for (int i=0;i<read_data_length;i++)
+					{
+						double level = double(inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+						level = (level * (double)1000 + 0.5977) / 0.9854;
+						factDisplayData[i] = level;
+					}
+		
+					//qDebug() << level << "mv" << endl;
+		
+					//发送事件给主窗口显示
+					//emit--->传输数据
+					//emit sendDisplayDataToWindow(display_ys);
+					QThread::msleep(read_data_length/displaySample_freq*1000);
+		}
+		
+	}
+	delete[] inBuffer;
 }
 
+void DisplayThread::recvMegFromMain(QString line,HANDLE& linkdevice) {
+	qDebug() << "display thread has recieve" << line.toStdString().c_str() << endl;
+	this->linkdevice = linkdevice;
+	
+}
 
+void DisplayThread::recvStopSignal(bool stop_flag) {
+	this->stop_flag = stop_flag;
 
+	qDebug() << "stop display thread" << endl;
+}

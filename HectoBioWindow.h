@@ -7,6 +7,7 @@
 #include <qwt_plot.h>
 #include <QWT/qwt.h>
 #include <qwt_plot_curve.h>
+#include "SignalDisplay.h"
 #pragma comment(lib,"USB2069.lib")
 
 #include <time.h>
@@ -15,11 +16,27 @@
 //#include "Circuit.h"
 #include "usb2069.h"
 #include <QThread>
+#include <QVector>
+#include <QTimer>
+#include "qmath.h"
+#include "qwt_point_data.h"
+#include <QDateTime>
+
 
 #define CONTINUE_ACQ 1
 #define SINGLE_ACQ 2
 #define DEFAULT_DEVICE_NUM 0
 #define MAX_SEGMENT 5
+#define DISPLAY_CNT 500
+#define READ_DATA_LENGTH 1024 * 100
+
+
+static QVector<double> display_xs;
+static QVector<double> display_ys;
+static QVector<double> factDisplayData;
+static QwtPointArrayData* display_xy_data;
+static int displaySample_freq;
+static int update_cycle;
 
 //读数据线程
 class ReadThread :public QThread
@@ -27,11 +44,21 @@ class ReadThread :public QThread
 	Q_OBJECT
 public:
 	ReadThread(QObject* obj);
+	HANDLE linkdevice;
+	USHORT* dataBuff[MAX_SEGMENT];
+	BOOL NewSegmentData[MAX_SEGMENT];
+	long read_data_length = 1024 * 100;
+	bool stop_flag=false;
+	
 
 signals:
 	void readFinish(QString line);
 protected:
 	void run() Q_DECL_OVERRIDE;
+
+public slots:
+	void recvMegFromMain(QString line,HANDLE& linkdevice);
+	void recvStopSignal(bool stop_flag);
 private:
 	QObject* m_obj;
 };
@@ -43,10 +70,21 @@ class DisplayThread :public QThread
 	Q_OBJECT
 public:
 	DisplayThread(QObject* obj);
+	HANDLE linkdevice;
+	/*USHORT* dataBuff[MAX_SEGMENT];
+	BOOL NewSegmentData[MAX_SEGMENT];*/
+	long read_data_length = 1024 * 100;
+	bool stop_flag = false;
+
 signals:
+	void sendDisplayDataToWindow(QVector<double> displaydata);
 	void displayFinish(QString line);
 protected:
 	void run() Q_DECL_OVERRIDE;
+
+public slots:
+	void recvMegFromMain(QString line,HANDLE& linkdevice);
+	void recvStopSignal(bool stop_flag);
 private:
 	QObject* m_obj;
 
@@ -67,6 +105,10 @@ public:
 	HANDLE linkdevice;
 
 	USB2069_PARA_INIT para_init;
+
+	bool display_flag = false;
+	bool save_flag = false;
+	bool ctn_stop_flag = false;
 
 	int selected_chn_sum = 0;
 	int acq_flag = CONTINUE_ACQ;
@@ -102,6 +144,7 @@ public:
 
 	//电路驱动类
 	//Circuit* circuit_set;
+	
 	long read_data_length = 1024 * 100;
 	bool softTrig = false;
 	USHORT* dataBuff[MAX_SEGMENT];
@@ -117,7 +160,7 @@ public:
 	//显示读取线程
 	ReadThread* m_readThread;
 	DisplayThread* m_displayThread;
-
+	QThread* displayThread;
 	
 
 	//读取和显示数据
@@ -136,8 +179,10 @@ public:
 	const char* db_name = "Dataset";
 
 signals:
-	void startReadThread();
-	void startDisplayThread();
+	void startReadThread(QString line,HANDLE& linkdevice);
+	void startDisplayThread(QString line, HANDLE& linkdevice);
+	void stopReadThread(bool stop_flag);
+	void stopDisplayThread(bool stop_flag);
 
 private slots:
 	//信号显示窗口槽函数
@@ -190,19 +235,32 @@ private slots:
 	//测试使用
 	//保存
 	void save_testSignal_btn();
-
+private slots:
+	void timerUpdate();
 private:
     Ui::HectoBioWindowClass ui;
 
 	QLineEdit* text;
 	void timerEvent(QTimerEvent*);
-	double time[500];
-	double val[500] = { 0 };
+	QTimer* displayUpdateTimer;
+	double time[50000];
+	double val[50000] = { 0 };
+	double* display_time = new double[500];
+	double* display_val = new double[500];
+	QVector<double> xs;
+	QVector<double> ys;
+	
+
+	PUSHORT inBuffer = new USHORT[read_data_length];
+	/*double display_time[1024*100];
+	double display_val[1024*100];*/
+	
 	USHORT* ad_data;
 
 	QwtPlotCurve* curve = new QwtPlotCurve("signal");
 
 	int timer = 0;
+	int dispay_timer = 0;
 	int time_dur = 50;
 
 	double* savetestSignal;

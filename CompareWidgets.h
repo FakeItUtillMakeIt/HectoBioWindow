@@ -5,6 +5,21 @@
 #include "qwt_plot_curve.h"
 #include <QMenu>
 #include <QAction>
+#include <QPushButton>
+#include "qwt_plot_zoomer.h"
+#include "QAction"
+#include "QMenu"
+#include "Hdf5Read.h"
+
+//#include "hdf5.h"
+#include <QAbstractItemView>
+#include <qwt_legend.h>
+#include <qwt_legend_label.h>
+#include <Qvariant.h>
+#include "QFileDialog"
+#include "qDebug"
+#include "qwt_plot.h"
+#include "QMessageBox"
 
 class CompareWidgets : public QWidget
 {

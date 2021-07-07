@@ -1,15 +1,7 @@
+//信号打分显示窗口
+
 #include "signaView.h"
-#include "QFileDialog"
-#include "QMessageBox"
-#include <iostream>
-#include <windows.h>
-#include <string>
-#include <atlstr.h>
-#include <QDir>
-#include "direct.h"
-#include "Hdf5Read.h"
-#include "qwt_plot_curve.h"
-#include "qwt_plot_zoomer.h"
+
 
 
 using namespace std;

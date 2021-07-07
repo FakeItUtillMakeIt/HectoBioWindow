@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1334</width>
-    <height>855</height>
+    <height>897</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -269,161 +269,141 @@
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_22">
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_9">
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <layout class="QVBoxLayout" name="verticalLayout_6">
                  <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_6">
-                   <item>
-                    <widget class="QLabel" name="label">
-                     <property name="text">
-                      <string>触发模式</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_2">
-                     <property name="text">
-                      <string>触发源</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_3">
-                     <property name="text">
-                      <string>采样频率</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_4">
-                     <property name="text">
-                      <string>触发电平</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_5">
-                     <property name="text">
-                      <string>触发长度</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_6">
-                     <property name="text">
-                      <string>延时时长</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_7">
-                   <item>
-                    <widget class="QComboBox" name="trigModel"/>
-                   </item>
-                   <item>
-                    <widget class="QComboBox" name="trigSource"/>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="sampleFreq"/>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="trigLevel"/>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="trigLength"/>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="delayTime"/>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_8">
-                   <item>
-                    <widget class="QLabel" name="label_7">
-                     <property name="text">
-                      <string/>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_8">
-                     <property name="text">
-                      <string/>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_9">
-                     <property name="text">
-                      <string>Hz</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_10">
-                     <property name="text">
-                      <string>mV</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_11">
-                     <property name="text">
-                      <string>ms</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_12">
-                     <property name="text">
-                      <string>ms</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_6">
-                 <item>
-                  <spacer name="horizontalSpacer_2">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="acqparaBtnOK">
+                  <widget class="QLabel" name="label">
                    <property name="text">
-                    <string>确定</string>
+                    <string>触发模式</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <spacer name="horizontalSpacer">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
+                  <widget class="QLabel" name="label_2">
+                   <property name="text">
+                    <string>触发源</string>
                    </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_3">
+                   <property name="text">
+                    <string>采样频率</string>
                    </property>
-                  </spacer>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_4">
+                   <property name="text">
+                    <string>触发电平</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_5">
+                   <property name="text">
+                    <string>触发长度</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_6">
+                   <property name="text">
+                    <string>延时时长</string>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
+               </item>
+               <item>
+                <layout class="QVBoxLayout" name="verticalLayout_7">
+                 <item>
+                  <widget class="QComboBox" name="trigModel"/>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="trigSource"/>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="sampleFreq"/>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="trigLevel"/>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="trigLength"/>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="delayTime"/>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QVBoxLayout" name="verticalLayout_8">
+                 <item>
+                  <widget class="QLabel" name="label_7">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_8">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_9">
+                   <property name="text">
+                    <string>Hz</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_10">
+                   <property name="text">
+                    <string>mV</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_11">
+                   <property name="text">
+                    <string>ms</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_12">
+                   <property name="text">
+                    <string>ms</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_9">
+               <item>
+                <widget class="QLabel" name="label_13">
+                 <property name="text">
+                  <string>一屏显示秒数:s</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="displayScreenSecVal"/>
+               </item>
+               <item>
+                <widget class="QPushButton" name="acqparaBtnOK">
+                 <property name="text">
+                  <string>确定</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -435,63 +415,50 @@
             <property name="title">
              <string>连续采集</string>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout">
+            <layout class="QVBoxLayout" name="verticalLayout_10">
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_20">
-               <item>
-                <layout class="QVBoxLayout" name="verticalLayout_10">
-                 <item>
-                  <widget class="QPushButton" name="ctnscqStart">
-                   <property name="text">
-                    <string>启动</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="ctnscqEnd">
-                   <property name="text">
-                    <string>结束</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="ctnscqDisplay">
-                   <property name="text">
-                    <string>显示</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="ctnacqMutliSelcet"/>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QVBoxLayout" name="verticalLayout_11">
-                 <item>
-                  <layout class="QHBoxLayout" name="horizontalLayout_7">
-                   <item>
-                    <widget class="QLineEdit" name="singleacqTime"/>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_13">
-                     <property name="text">
-                      <string>ms</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="singleacqEnd">
-                   <property name="text">
-                    <string>单次采集</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
+              <widget class="QCheckBox" name="ctnscqDisplay">
+               <property name="text">
+                <string>显示</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="ctnscqSave">
+               <property name="text">
+                <string>保存</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="ctnscqStart">
+               <property name="text">
+                <string>启动</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="ctnscqEnd">
+               <property name="text">
+                <string>结束</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="ctnacqMutliSelcet"/>
+             </item>
+             <item>
+              <spacer name="verticalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>118</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </widget>
@@ -749,7 +716,24 @@
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_18">
                   <item>
+                   <widget class="QLabel" name="label_26">
+                    <property name="text">
+                     <string>输入DA偏移（mv）</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QLineEdit" name="da_offset_voltage"/>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="label_27">
+                    <property name="text">
+                     <string>输入调节大小</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="displayPlotAdjustScale"/>
                   </item>
                   <item>
                    <spacer name="verticalSpacer">
@@ -842,23 +826,16 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="signaldispHurry">
+             <widget class="QPushButton" name="displayZoomIncrease">
               <property name="text">
-               <string>加速</string>
+               <string>改变上边界</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="signaldispSlow">
+             <widget class="QPushButton" name="displayZoomDecrease">
               <property name="text">
-               <string>减速</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="savetestSignalBtn">
-              <property name="text">
-               <string>保存（测试）</string>
+               <string>改变下边界</string>
               </property>
              </widget>
             </item>

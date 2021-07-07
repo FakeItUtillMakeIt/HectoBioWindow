@@ -35,9 +35,12 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\HelloWorld\QTHelloWorld\QTHelloWorld\Win32ProperVS+QT+USB2069+QWT+HDF5.props" />
+    <Import Project="Win32ProperVS+QT+USB2069+QWT+HDF5.props" />
+    <Import Project="..\..\Visual\Win32ProperVS+QT+USB2069+QWT+HDF5.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\Visual\Win32ProperVS+QT+USB2069+QWT+HDF5.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -49,14 +52,14 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\QTProject\Visual\HectoBioWindow\Release\rcc;D:\QTProject\Visual\HectoBioWindow\Release\moc;D:\QTProject\Visual\HectoBioWindow\Debug\rcc;D:\QTProject\Visual\HectoBioWindow\Debug\moc;C:\Qt\Qt5.14.2\5.14.2\msvc2017\include\QWT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\QTProject\Visual\HectoBioWindow\Release\rcc;D:\QTProject\Visual\HectoBioWindow\Release\moc;D:\QTProject\Visual\HectoBioWindow\Debug\rcc;D:\QTProject\Visual\HectoBioWindow\Debug\moc;C:\Qt\Qt5.14.2\5.14.2\msvc2017\include\QWT;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>H5_BUILT_AS_DYNAMIC_LIB;USB2069_LIB</PreprocessorDefinitions>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(ProjectDir);C:\Program Files %28x86%29\HDF_Group\HDF5\1.8.19\include;D:\QTProject\Visual\HectoBioWindow\USB2069;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);C:\Program Files (x86)\HDF_Group\HDF5\1.8.19\include;D:\QTProject\Visual\HectoBioWindow\USB2069;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -108,6 +111,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SignalDisplay.cpp" />
     <ClCompile Include="signaView.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -133,6 +137,7 @@
     <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <QtUic Include="SignalDisplay.ui" />
     <QtUic Include="signaView.ui" />
   </ItemGroup>
   <ItemGroup>
@@ -142,6 +147,7 @@
     <ClInclude Include="CurveInfo.h" />
     <ClInclude Include="Hdf5Read.h" />
     <ClInclude Include="resource.h" />
+    <QtMoc Include="SignalDisplay.h" />
     <ClInclude Include="usb2069.h" />
     <QtMoc Include="signaView.h" />
     <ClInclude Include="TimeSerialData.h" />

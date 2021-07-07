@@ -39,6 +39,9 @@
     <QtUic Include="signaView.ui">
       <Filter>Resource Files</Filter>
     </QtUic>
+    <QtUic Include="SignalDisplay.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -59,6 +62,9 @@
     <ClCompile Include="signaView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SignalDisplay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="HectoBioWindow.qrc" />
@@ -68,6 +74,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="signaView.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="SignalDisplay.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

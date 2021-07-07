@@ -462,6 +462,13 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QCheckBox" name="ctnscqSave">
+                   <property name="text">
+                    <string>保存</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QComboBox" name="ctnacqMutliSelcet"/>
                  </item>
                 </layout>
@@ -748,6 +755,13 @@
                   <string>其他功能</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_18">
+                  <item>
+                   <widget class="QLabel" name="label_26">
+                    <property name="text">
+                     <string>输入DA偏移量化值</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="QLineEdit" name="da_offset_voltage"/>
                   </item>

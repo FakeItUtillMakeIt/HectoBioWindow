@@ -1,23 +1,6 @@
-#include "HectoBioWindow.h"
-#include "QMessageBox"
-#include <string>
-#include "QString"
-#include "qwt_plot.h"
-#include "qwt_plot_zoomer.h"
-#include "qwt_plot_panner.h"
-#include "qwt_plot_magnifier.h"
+ï»¿//HectoBioWindow V1.0
 
-#include "CompareWidgets.h"
-#include "QAction"
-#include "signaView.h"
-#include "QFileDialog.h"
-#include <QPushButton>
-#include <fstream>
-#include <QBitmap>
-#include <QThread>
-#include <windows.h>
-#include "stdio.h"
-//#include "usb2069.h"
+#include "HectoBioWindow.h"
 
 
 using namespace std;
@@ -27,28 +10,31 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 {
     ui.setupUi(this);
 
-	//³õÊ¼»¯½çÃæ
+	//åˆå§‹åŒ–ç•Œé¢
 	init_window();
 
-	//³õÊ¼»¯µçÂ·Á¬½Ó
+	//åˆå§‹åŒ–ç”µè·¯è¿æ¥
 	init_circuit();
 
 	//USB2069_InitAD(linkdevice,)
 
-	//³õÊ¼»¯Êı¾İ±£´æÀà
+	//åˆå§‹åŒ–æ•°æ®ä¿å­˜ç±»
 	hdf5_op = new Hdf5Read();
 
-	//³õÊ¼»¯Ö÷½çÃæÉèÖÃ
+	//åˆå§‹åŒ–ä¸»ç•Œé¢è®¾ç½®
 	curve->setPen(Qt::blue, 2);
-	//¸üĞÂ³õÊ¼Êı¾İ ´ÓµçÂ·³öÀ´µÄÊı¾İ     µçÂ·µ½Ö®ºó
-	updateAD_data(NULL);
+	//æ›´æ–°åˆå§‹æ•°æ® ä»ç”µè·¯å‡ºæ¥çš„æ•°æ®     ç”µè·¯åˆ°ä¹‹å
+	//updateAD_data(NULL);
 
-	ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
-	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
+	ui.signalPlot->setTitle(QwtText(""));
+	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "voltage / mV");
 	ui.signalPlot->setAxisTitle(QwtPlot::xBottom, "time / mS");
+	ui.signalPlot->setAxisScale(QwtPlot::xBottom, 0, READ_DATA_LENGTH-(long long int)1, 0);
+	//ui.signalPlot->setAxisScale(QwtPlot::yLeft, -5000, 5000, 0);
+	ui.signalPlot->setAxisAutoScale(QwtPlot::yLeft, true);
 
 
-	//menubar¼Ó¶¯×÷ÉèÎªSignal
+	//menubaråŠ åŠ¨ä½œè®¾ä¸ºSignal
 	QAction* act = new QAction(("Compare widgets"), ui.menuSignal_compare_widget);
 	act->setCheckable(true);
 	act->setChecked(false);
@@ -60,31 +46,31 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	ui.menu_signalView_widget->addAction(act1);
 
 	/*****************************************************************/
-	//±È½Ï´°¿Ú
+	//æ¯”è¾ƒçª—å£
 	/*****************************************************************/
 	//connect(ui.menuSignal_compare_widget, &QMenu::hovered, this, &HectoBioWindow::on_compare_btn);
 	connect(ui.menuSignal_compare_widget, &QMenu::triggered, this, &HectoBioWindow::on_compare_btn);
-	//ÌôÑ¡ĞÅºÅ´°¿Ú
+	//æŒ‘é€‰ä¿¡å·çª—å£
 	//connect(ui.menu_signalView_widget, &QMenu::hovered, this, &HectoBioWindow::on_signalView_btn);
 	connect(ui.menu_signalView_widget, &QMenu::triggered, this, &HectoBioWindow::on_signalView_btn);
 
-	//Ö÷½çÃæ 
-	//Í¨µÀ  È«Ñ¡°´Å¥
+	//ä¸»ç•Œé¢ 
+	//é€šé“  å…¨é€‰æŒ‰é’®
 	connect(ui.chnselectAll, &QPushButton::clicked, this, &HectoBioWindow::on_selectAll_btn);
-	//È¡ÏûÈ«Ñ¡°´Å¥
+	//å–æ¶ˆå…¨é€‰æŒ‰é’®
 	connect(ui.chncancelAll, &QPushButton::clicked, this, &HectoBioWindow::on_cancelAll_btn);
-	//È·¶¨
+	//ç¡®å®š
 	connect(ui.selectchnOK, &QPushButton::clicked, this, &HectoBioWindow::on_selectChnOK_btn);
-	//²É¼¯²ÎÊı  È·¶¨
+	//é‡‡é›†å‚æ•°  ç¡®å®š
 	connect(ui.acqparaBtnOK, &QPushButton::clicked, this, &HectoBioWindow::on_acqparaOK_btn);
-	//Á¬Ğø²É¼¯  Æô¶¯
+	//è¿ç»­é‡‡é›†  å¯åŠ¨
 	connect(ui.ctnscqStart, &QPushButton::clicked, this, &HectoBioWindow::on_startCtnAcq_btn);
-	//½áÊø
+	//ç»“æŸ
 	connect(ui.ctnscqEnd, &QPushButton::clicked, this, &HectoBioWindow::on_stopCtnAcq_btn);
 
-	//ÏÔÊ¾
+	//æ˜¾ç¤º
 
-	//µ¥´Î²É¼¯ ½áÊø
+	//å•æ¬¡é‡‡é›† ç»“æŸ
 	connect(ui.singleacqEnd, &QPushButton::clicked, this, &HectoBioWindow::on_singleAcq_btn);
 	//DA0 DA0
 	connect(ui.btnDA0, &QPushButton::clicked, this, &HectoBioWindow::on_DA0_btn);
@@ -95,33 +81,32 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	//DA3	DA3
 	connect(ui.btnDA3, &QPushButton::clicked, this, &HectoBioWindow::on_DA3_btn);
 
-	//»ùÏß
-	//»ùÏß¶ÁÈ¡
+	//åŸºçº¿
+	//åŸºçº¿è¯»å–
 	connect(ui.baselineReadBtn, &QPushButton::clicked, this, &HectoBioWindow::on_baselineRd_btn);
-	//»ùÏßĞ£Õı
+	//åŸºçº¿æ ¡æ­£
 	connect(ui.baselineRecoverBtn, &QPushButton::clicked, this, &HectoBioWindow::on_baselineRcv_btn);
 
-	//Êä³öĞÅÏ¢
-	//±£´æÊä³öĞÅÏ¢
+	//è¾“å‡ºä¿¡æ¯
+	//ä¿å­˜è¾“å‡ºä¿¡æ¯
 	connect(ui.saveTextbtn, &QPushButton::clicked, this, &HectoBioWindow::on_saveoutinfo_btn);
-	//Çå³ı
+	//æ¸…é™¤
 	connect(ui.clearTextbtn, &QPushButton::clicked, this, &HectoBioWindow::on_clearinfo_btn);
 
 
-	//ĞÅºÅÏÔÊ¾¹¦ÄÜ  ÏÔÊ¾°´Å¥
+	//ä¿¡å·æ˜¾ç¤ºåŠŸèƒ½  æ˜¾ç¤ºæŒ‰é’®
 	connect(ui.signaldispDisp, &QPushButton::clicked, this, &HectoBioWindow::on_disp_btn);
-	//Çå³ı°´Å¥
+	//æ¸…é™¤æŒ‰é’®
 	connect(ui.signalearseDisp, &QPushButton::clicked, this, &HectoBioWindow::on_earse_btn);
-	//ÔİÍ£°´Å¥
+	//æš‚åœæŒ‰é’®
 	connect(ui.signalstopDisp, &QPushButton::clicked, this, &HectoBioWindow::on_stop_btn);
-	//¼ÓËÙ°´Å¥
+	//åŠ é€ŸæŒ‰é’®
 	connect(ui.signaldispHurry, &QPushButton::clicked, this, &HectoBioWindow::on_hurry_btn);
-	//¼õËÙ°´Å¥ 
+	//å‡é€ŸæŒ‰é’® 
 	connect(ui.signaldispSlow, &QPushButton::clicked, this, &HectoBioWindow::on_slow_btn);
 
-
-	//²âÊÔÊ¹ÓÃ
-	//±£´æ°´Å¥
+	//æµ‹è¯•ä½¿ç”¨
+	//ä¿å­˜æŒ‰é’®
 	connect(ui.savetestSignalBtn, &QPushButton::clicked, this, &HectoBioWindow::save_testSignal_btn);
 
 }
@@ -136,9 +121,9 @@ float HectoBioWindow::winDpiScale() {
 
 
 
-//³õÊ¼»¯½çÃæº¯Êı
+//åˆå§‹åŒ–ç•Œé¢å‡½æ•°
 void HectoBioWindow::init_window() {
-	//ÊÊÅä·Ö±æÂÊ
+	//é€‚é…åˆ†è¾¨ç‡
 	int newWidth = this->width();
 	int newHight = this->height();
 
@@ -151,7 +136,7 @@ void HectoBioWindow::init_window() {
 	this->setMinimumHeight(newHight);
 
 
-	//Í¨µÀ³õÊ¼»¯£¬È«²¿³õÊ¼»¯ÎªÎ´Ñ¡ÖĞ
+	//é€šé“åˆå§‹åŒ–ï¼Œå…¨éƒ¨åˆå§‹åŒ–ä¸ºæœªé€‰ä¸­
 	ui.CH1->setCheckState(Qt::Unchecked);
 	ui.CH2->setCheckState(Qt::Unchecked);
 	ui.CH3->setCheckState(Qt::Unchecked);
@@ -178,61 +163,61 @@ void HectoBioWindow::init_window() {
 	ui.CH24->setCheckState(Qt::Unchecked);
 
 
-	//²É¼¯²ÎÊı
-	//´¥·¢Ä£Ê½  ´¥·¢Ä£Ê½³õÊ¼»¯ÎªÁ¬Ğø´¥·¢
+	//é‡‡é›†å‚æ•°
+	//è§¦å‘æ¨¡å¼  è§¦å‘æ¨¡å¼åˆå§‹åŒ–ä¸ºè¿ç»­è§¦å‘
 	ui.trigModel->setEditable(false);
 
-	ui.trigModel->addItem(QString::fromLocal8Bit("Á¬Ğø"));
-	ui.trigModel->addItem(QString::fromLocal8Bit("ºó´¥·¢"));
-	ui.trigModel->addItem(QString::fromLocal8Bit("ÑÓÊ±"));
+	ui.trigModel->addItem(QString::fromLocal8Bit("è¿ç»­"));
+	ui.trigModel->addItem(QString::fromLocal8Bit("åè§¦å‘"));
+	ui.trigModel->addItem(QString::fromLocal8Bit("å»¶æ—¶"));
 
 	ui.trigModel->setCurrentIndex(0);
-	//´¥·¢Ô´  ´¥·¢Ô´³õÊ¼»¯ÎªÍâÕıÑØ´¥·¢
+	//è§¦å‘æº  è§¦å‘æºåˆå§‹åŒ–ä¸ºå¤–æ­£æ²¿è§¦å‘
 	ui.trigSource->setEditable(false);
 
-	ui.trigSource->addItem(QString::fromLocal8Bit("ÍâÕıÑØ´¥·¢"));
-	ui.trigSource->addItem(QString::fromLocal8Bit("Íâ¸ºÑØ´¥·¢"));
-	ui.trigSource->addItem(QString::fromLocal8Bit("±ßÑØ´¥·¢"));
+	ui.trigSource->addItem(QString::fromLocal8Bit("å¤–æ­£æ²¿è§¦å‘"));
+	ui.trigSource->addItem(QString::fromLocal8Bit("å¤–è´Ÿæ²¿è§¦å‘"));
+	ui.trigSource->addItem(QString::fromLocal8Bit("è¾¹æ²¿è§¦å‘"));
 
 	ui.trigSource->setCurrentIndex(0);
-	//²ÉÑùÂÊ  ²ÉÑùÂÊ³õÊ¼»¯Îª0
+	//é‡‡æ ·ç‡  é‡‡æ ·ç‡åˆå§‹åŒ–ä¸º0
 	ui.sampleFreq->setText(QString::number(sample_freq));
-	//´¥·¢µçÆ½ ´¥·¢µçÆ½³õÊ¼»¯Îª0
+	//è§¦å‘ç”µå¹³ è§¦å‘ç”µå¹³åˆå§‹åŒ–ä¸º0
 	ui.trigLevel->setText(QString::number(trig_level));
-	//´¥·¢³¤¶È
+	//è§¦å‘é•¿åº¦
 	ui.trigLength->setText(QString::number(trig_length));
-	//ÑÓÊ±
+	//å»¶æ—¶
 
 	ui.delayTime->setText(QString::number(trig_delay));
 
-	//Á¬Ğø²É¼¯
-	//ÏÔÊ¾
+	//è¿ç»­é‡‡é›†
+	//æ˜¾ç¤º
 	ui.ctnscqDisplay->setCheckable(true);
 	ui.ctnscqDisplay->setCheckState(Qt::Unchecked);
 	ui.ctnscqStart->setEnabled(true);
 	ui.ctnscqEnd->setEnabled(false);
 
-	//´¥·¢Ä£Ê½
+	//è§¦å‘æ¨¡å¼
 	ui.ctnacqMutliSelcet->setMaxVisibleItems(10);
-	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("ÍâÕıÑØ´¥·¢"));
-	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("Íâ¸ºÑØ´¥·¢"));
-	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("±ßÑØ´¥·¢"));
+	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("å¤–æ­£æ²¿è§¦å‘"));
+	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("å¤–è´Ÿæ²¿è§¦å‘"));
+	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("è¾¹æ²¿è§¦å‘"));
 
 	ui.ctnacqMutliSelcet->setCurrentIndex(0);
 
-	//µ¥´Î²É¼¯
-	//²É¼¯Ê±³¤
+	//å•æ¬¡é‡‡é›†
+	//é‡‡é›†æ—¶é•¿
 	ui.singleacqEnd->setEnabled(true);
 	ui.singleacqTime->setText(QString::number(0));
 
 	/********************************
-	//DA²¿·ÖÔİÊ±²»Çå³şÊÇÓÃÀ´×öÊ²Ã´µÄ£¿
+	//DAéƒ¨åˆ†æš‚æ—¶ä¸æ¸…æ¥šæ˜¯ç”¨æ¥åšä»€ä¹ˆçš„ï¼Ÿ
 	*********************************/
 	//DA0
 
 	ui.da0MutliSelect->setMaxVisibleItems(10);
-	ui.da0MutliSelect->addItem(QString::fromLocal8Bit("ÕıÏÒ²¨"));
-	ui.da0MutliSelect->addItem(QString::fromLocal8Bit("·½²¨"));
+	ui.da0MutliSelect->addItem(QString::fromLocal8Bit("æ­£å¼¦æ³¢"));
+	ui.da0MutliSelect->addItem(QString::fromLocal8Bit("æ–¹æ³¢"));
 
 	ui.da0freq->setText(QString::number(da_freq));
 	ui.da0samplepoint->setText(QString::number(da_sample));
@@ -243,8 +228,8 @@ void HectoBioWindow::init_window() {
 	//DA1
 
 	ui.da1MutliSelect->setMaxVisibleItems(10);
-	ui.da1MutliSelect->addItem(QString::fromLocal8Bit("ÕıÏÒ²¨"));
-	ui.da1MutliSelect->addItem(QString::fromLocal8Bit("·½²¨"));
+	ui.da1MutliSelect->addItem(QString::fromLocal8Bit("æ­£å¼¦æ³¢"));
+	ui.da1MutliSelect->addItem(QString::fromLocal8Bit("æ–¹æ³¢"));
 
 	ui.da1freq->setText(QString::number(da_freq));
 	ui.da1samplepoint->setText(QString::number(da_sample));
@@ -254,8 +239,8 @@ void HectoBioWindow::init_window() {
 	//DA2
 
 	ui.da2MutliSelect->setMaxVisibleItems(10);
-	ui.da2MutliSelect->addItem(QString::fromLocal8Bit("ÕıÏÒ²¨"));
-	ui.da2MutliSelect->addItem(QString::fromLocal8Bit("·½²¨"));
+	ui.da2MutliSelect->addItem(QString::fromLocal8Bit("æ­£å¼¦æ³¢"));
+	ui.da2MutliSelect->addItem(QString::fromLocal8Bit("æ–¹æ³¢"));
 
 	ui.da2freq->setText(QString::number(da_freq));
 	ui.da2samplepoint->setText(QString::number(da_sample));
@@ -265,8 +250,8 @@ void HectoBioWindow::init_window() {
 	//DA3
 
 	ui.da3MutliSelect->setMaxVisibleItems(10);
-	ui.da3MutliSelect->addItem(QString::fromLocal8Bit("ÕıÏÒ²¨"));
-	ui.da3MutliSelect->addItem(QString::fromLocal8Bit("·½²¨"));
+	ui.da3MutliSelect->addItem(QString::fromLocal8Bit("æ­£å¼¦æ³¢"));
+	ui.da3MutliSelect->addItem(QString::fromLocal8Bit("æ–¹æ³¢"));
 
 	ui.da3freq->setText(QString::number(da_freq));
 	ui.da3samplepoint->setText(QString::number(da_sample));
@@ -275,7 +260,7 @@ void HectoBioWindow::init_window() {
 	ui.da3start->setCheckState(Qt::Unchecked);
 
 
-	ui.baseline_input->setText(QString::fromLocal8Bit("ÊäÈëĞ£ÕıÆ«ÒÆ"));
+	ui.baseline_input->setText(QString::fromLocal8Bit("è¾“å…¥æ ¡æ­£åç§»"));
 
 	
 
@@ -283,13 +268,13 @@ void HectoBioWindow::init_window() {
 }
 
 /*************************************************
-   ¹ËÀÏÊ¦Ìá³öµÄ±È½Ï¹¦ÄÜ
+   é¡¾è€å¸ˆæå‡ºçš„æ¯”è¾ƒåŠŸèƒ½
 ***************************************************/
-//±È½Ï½çÃæ²Ûº¯Êı
+//æ¯”è¾ƒç•Œé¢æ§½å‡½æ•°
 
 void HectoBioWindow::on_compare_btn() {
 	CompareWidgets* cmpwindow = new CompareWidgets();
-	cmpwindow->setWindowTitle(QString::fromLocal8Bit("¶àĞÅºÅ±È½Ï½çÃæ"));
+	cmpwindow->setWindowTitle(QString::fromLocal8Bit("å¤šä¿¡å·æ¯”è¾ƒç•Œé¢"));
 	
 	cmpwindow->setWindowIcon(QIcon(QStringLiteral("res/hectobio1.png")));
 
@@ -313,12 +298,12 @@ void HectoBioWindow::on_compare_btn() {
 }
 
 /*************************************************
-   ÁÖÁ¢°²Ìá³öµÄ´ò·Ö¹¦ÄÜ
+   æ—ç«‹å®‰æå‡ºçš„æ‰“åˆ†åŠŸèƒ½
 ***************************************************/
-//´ò·Ö½çÃæ²Ûº¯Êı
+//æ‰“åˆ†ç•Œé¢æ§½å‡½æ•°
 void HectoBioWindow::on_signalView_btn() {
 	signaView* signalviewWindow = new signaView();
-	signalviewWindow->setWindowTitle(QString::fromLocal8Bit("ĞÅºÅ´ò·Ö£¨¹©ÄÚ²¿ÊµÑéÈËÔ±²Ù×÷£©"));
+	signalviewWindow->setWindowTitle(QString::fromLocal8Bit("ä¿¡å·æ‰“åˆ†ï¼ˆä¾›å†…éƒ¨å®éªŒäººå‘˜æ“ä½œï¼‰"));
 
 	signalviewWindow->setWindowIcon(QIcon(QStringLiteral("res/hectobio1.png")));
 
@@ -342,7 +327,7 @@ void HectoBioWindow::on_signalView_btn() {
 }
 
 /******************************
-³õÊ¼»¯µçÂ·
+åˆå§‹åŒ–ç”µè·¯
 *************************************/
 void HectoBioWindow::init_circuit() {
 
@@ -368,21 +353,23 @@ void HectoBioWindow::init_circuit() {
 			para_init.TriggerSource = 0;
 
 			
-			ui.textBrowser->append(QString::fromLocal8Bit("ÒÑÁ¬½ÓÉè±¸ºÅ:")+QString::number(devNum));
+			ui.textBrowser->append(QString::fromLocal8Bit("å·²è¿æ¥è®¾å¤‡å·:")+QString::number(devNum));
+			qDebug() << linkdevice << endl;
+			device_flag = true;
 
 			return;
 		}
 	}
-	ui.textBrowser->append(QString::fromLocal8Bit("Î´Á¬½ÓÉè±¸£¬Çë¼ì²é»òÖØĞÂ²å°ÎÉè±¸"));
-
+	ui.textBrowser->append(QString::fromLocal8Bit("æœªè¿æ¥è®¾å¤‡ï¼Œè¯·æ£€æŸ¥æˆ–é‡æ–°æ’æ‹”è®¾å¤‡"));
+	device_flag = false;
 	return;
 }
 
 
 /*************************************************
-   Í¨µÀÈ«²¿Ê¹ÄÜ
+   é€šé“å…¨éƒ¨ä½¿èƒ½
 ***************************************************/
-//Í¨µÀ×Ó¹¦ÄÜ²Ûº¯Êı
+//é€šé“å­åŠŸèƒ½æ§½å‡½æ•°
 void HectoBioWindow::on_selectAll_btn() {
 	ui.CH1->setCheckState(Qt::Checked);
 	ui.CH2->setCheckState(Qt::Checked);
@@ -413,7 +400,7 @@ void HectoBioWindow::on_selectAll_btn() {
 }
 
 /*************************************************
-   Í¨µÀÈ«²¿È¡ÏûÑ¡Ôñ
+   é€šé“å…¨éƒ¨å–æ¶ˆé€‰æ‹©
 ***************************************************/
 void HectoBioWindow::on_cancelAll_btn() {
 	
@@ -430,14 +417,14 @@ void HectoBioWindow::on_cancelAll_btn() {
 }
 
 /*************************************************
-   Ñ¡ÖĞÍ¨µÀ²Ûº¯Êı
+   é€‰ä¸­é€šé“æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_selectChnOK_btn() {
 	//
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("error ï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		//init_circuit(circuit_set);
 		return;
 	}
@@ -465,7 +452,7 @@ void HectoBioWindow::on_selectChnOK_btn() {
 	}
 	if (selected_chn_sum > 0)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("µ±Ç°Ñ¡ÖĞÍ¨µÀÎª£º"));
+		ui.textBrowser->append(QString::fromLocal8Bit("å½“å‰é€‰ä¸­é€šé“ä¸ºï¼š"));
 		QString selectchn_str = "";
 		for (int i=0;i<24;i++)
 		{
@@ -476,25 +463,25 @@ void HectoBioWindow::on_selectChnOK_btn() {
 			}
 		}
 		ui.textBrowser->append(selectchn_str);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë½øĞĞÏÂÒ»²½"));
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·è¿›è¡Œä¸‹ä¸€æ­¥"));
 	}
 	else
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("ÇëÑ¡ÔñÍ¨µÀ,È»ºó½øĞĞÏÂÒ»²½"));
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·é€‰æ‹©é€šé“,ç„¶åè¿›è¡Œä¸‹ä¸€æ­¥"));
 	}
 
 	return;
 }
 
 /*************************************************
-   //²É¼¯²ÎÊı¹¦ÄÜ²Ûº¯Êı
+   //é‡‡é›†å‚æ•°åŠŸèƒ½æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_acqparaOK_btn() {
 
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
 
@@ -505,19 +492,19 @@ void HectoBioWindow::on_acqparaOK_btn() {
 	trig_length = ui.trigLength->text().toInt();
 	trig_delay = ui.delayTime->text().toInt();
 
-	QMessageBox::warning(this, QString::fromLocal8Bit("ÇëÈ·ÈÏ²É¼¯²ÎÊıÎŞÎó"), QString::fromLocal8Bit("ÇëÈ·ÈÏ²É¼¯²ÎÊıÎŞÎó"), QMessageBox::Yes);
+	QMessageBox::warning(this, QString::fromLocal8Bit("è¯·ç¡®è®¤é‡‡é›†å‚æ•°æ— è¯¯"), QString::fromLocal8Bit("è¯·ç¡®è®¤é‡‡é›†å‚æ•°æ— è¯¯"), QMessageBox::Yes);
 
-	ui.textBrowser->append(QString::fromLocal8Bit("°´ÏÂ²É¼¯²ÎÊıÈ·¶¨°´Å¥\n´¥·¢Ä£Ê½£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("æŒ‰ä¸‹é‡‡é›†å‚æ•°ç¡®å®šæŒ‰é’®\nè§¦å‘æ¨¡å¼ï¼š"));
 	ui.textBrowser->append((ui.trigModel->itemText(trig_mode)));
-	ui.textBrowser->append(QString::fromLocal8Bit("´¥·¢Ô´£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("è§¦å‘æºï¼š"));
 	ui.textBrowser->append((ui.trigSource->itemText(trig_source)));
-	ui.textBrowser->append(QString::fromLocal8Bit("²ÉÑùÆµÂÊ£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("é‡‡æ ·é¢‘ç‡ï¼š"));
 	ui.textBrowser->append(QString::number(sample_freq));
-	ui.textBrowser->append(QString::fromLocal8Bit("´¥·¢µçÆ½£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("è§¦å‘ç”µå¹³ï¼š"));
 	ui.textBrowser->append(QString::number(trig_level));
-	ui.textBrowser->append(QString::fromLocal8Bit("´¥·¢³¤¶È£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("è§¦å‘é•¿åº¦ï¼š"));
 	ui.textBrowser->append(QString::number(trig_length));
-	ui.textBrowser->append(QString::fromLocal8Bit("ÑÓÊ±£º"));
+	ui.textBrowser->append(QString::fromLocal8Bit("å»¶æ—¶ï¼š"));
 	ui.textBrowser->append(QString::number(trig_delay));
 
 	return;
@@ -525,32 +512,32 @@ void HectoBioWindow::on_acqparaOK_btn() {
 
 
 /*************************************************
-  //Á¬Ğø²É¼¯¹¦ÄÜ²Ûº¯Êı
+  //è¿ç»­é‡‡é›†åŠŸèƒ½æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_startCtnAcq_btn() {
-	//¿ªÊ¼Á¬Ğø²É¼¯Ö®Ç°ĞèÅĞ¶ÏÉè±¸ÊÇ·ñÔÚÏß
+	//å¼€å§‹è¿ç»­é‡‡é›†ä¹‹å‰éœ€åˆ¤æ–­è®¾å¤‡æ˜¯å¦åœ¨çº¿
 	if (1)
 	{
 		if (!device_flag)
 		{
-			QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-			ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+			QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+			ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 			return;
 		}
-	//ÊÇ·ñÑ¡ÔñÍ¨µÀ  Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//æ˜¯å¦é€‰æ‹©é€šé“  å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 		if (selected_chn_sum == 0)
 		{
-			QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-			ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+			QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+			ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 			return;
 		}
 	}
 	
 	/*****************************************************
-	* //Èç¹ûÑ¡ÔñÍ¨µÀ£¬¶ÁÈ¡ADÊı¾İ
-	Ôòµ÷ÓÃĞÅºÅÏÔÊ¾¹¦ÄÜ²¿·Ö£¨ÏÔÊ¾£¬¸ù¾İ´«µİµÄÍ¨µÀÊıÏÔÊ¾£©
+	* //å¦‚æœé€‰æ‹©é€šé“ï¼Œè¯»å–ADæ•°æ®
+	åˆ™è°ƒç”¨ä¿¡å·æ˜¾ç¤ºåŠŸèƒ½éƒ¨åˆ†ï¼ˆæ˜¾ç¤ºï¼Œæ ¹æ®ä¼ é€’çš„é€šé“æ•°æ˜¾ç¤ºï¼‰
 	******************************************************/
-	ui.textBrowser->append(QString::fromLocal8Bit("Á¬Ğø²É¼¯Ä£Ê½"));
+	ui.textBrowser->append(QString::fromLocal8Bit("è¿ç»­é‡‡é›†æ¨¡å¼"));
 	for (int i=0;i<24;i++)
 	{
 		para_init.lEnCh[i] = selectedChn[i];
@@ -568,12 +555,13 @@ void HectoBioWindow::on_startCtnAcq_btn() {
  	if (USB2069_InitAD(linkdevice, &para_init))
 	{
 		;
-		ui.textBrowser->append(QString::fromLocal8Bit("³õÊ¼»¯AD³É¹¦"));
+		ui.textBrowser->append(QString::fromLocal8Bit("åˆå§‹åŒ–ADæˆåŠŸ"));
 	}
-	//½ûÖ¹²É¼¯²ÎÊı
+	//ç¦æ­¢é‡‡é›†å‚æ•°
 	setTrigPara(false);
 
-	//¼ÇµÃÌí¼ÓÊı¾İ¸üĞÂºÍÍ¼ÏñÊµÊ±ÏÔÊ¾
+	//æ·»åŠ æ•°æ®æ›´æ–°å’Œå›¾åƒå®æ—¶æ˜¾ç¤º
+	//æ”¾åœ¨çº¿ç¨‹ä¸­
 	if (para_init.TriggerMode==TRIG_SRC_SOFT)
 	{
 		softTrig = true;
@@ -590,7 +578,7 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 	}
 	
 	int i = 0;
-	//ÖØĞÂ·ÖÅä»º³åÇø
+	//é‡æ–°åˆ†é…ç¼“å†²åŒº
 	if (dataBuff)
 	{
 		for (i=0;i<MAX_SEGMENT;i++ )
@@ -599,12 +587,12 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 			dataBuff[i] = NULL;
 		}
 	}
-	//¶à»º³å
+	//å¤šç¼“å†²
 	for (i=0;i<MAX_SEGMENT;i++)
 	{
-		dataBuff[i] = new USHORT[samcnt];//Ã¿¸ö»º³åÇø´æ·ÅÒ»¸öÍ¨µÀADÊı¾İ
+		dataBuff[i] = new USHORT[samcnt];//æ¯ä¸ªç¼“å†²åŒºå­˜æ”¾ä¸€ä¸ªé€šé“ADæ•°æ®
 	}
-	//³õÊ¼»¯¶à»º³å±êÖ¾
+	//åˆå§‹åŒ–å¤šç¼“å†²æ ‡å¿—
 	for (i=0;i<MAX_SEGMENT;i++)
 	{
 		NewSegmentData[i] = FALSE;
@@ -612,44 +600,249 @@ void HectoBioWindow::on_startCtnAcq_btn() {
 	ReadIndex = 0;
 
 	ADRun = TRUE;
-	bool display_flag = ui.ctnscqDisplay->isChecked();
-	bool save_flag = !display_flag;
-	//´´½¨¶ÁÈ¡Ïß³ÌºÍÏÔÊ¾Ïß³Ì
-	if (ADRun && save_flag)
-	{
-		this->m_readThread = new ReadThread(this);
-		this->m_readThread->start();
-		connect(this->m_readThread, SIGNAL(readFinish(&HectoBioWindow)), this, SLOT(test_readthread(&HectoBioWindow)));
-		//connect(this->m_readThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+	display_flag = ui.ctnscqDisplay->isChecked();
+	save_flag = ui.ctnscqSave->isChecked();
 
+	//save_flag = !display_flag;
+	//åˆ›å»ºè¯»å–çº¿ç¨‹å’Œæ˜¾ç¤ºçº¿ç¨‹
+	if (ADRun && save_flag && display_flag==false)
+	{
+		m_readThread = new ReadThread(this);
+		//ä¿®æ”¹ä¼ é€’ä¿¡å· éœ€è¦ä¼ é€’è®¾å¤‡å·å’Œé€šé“å·
+		connect(this, SIGNAL(startReadThread(QString,HANDLE&)), m_readThread, SLOT(recvMegFromMain(QString,HANDLE&)));
+		//m_readThread->start();
+		//
+		//connect(this->m_readThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+		emit startReadThread(NULL,linkdevice);
+		m_readThread->start();
 	}
 	else if (ADRun && display_flag)
 	{
-		this->m_displayThread = new DisplayThread(this);
-		this->m_displayThread->start();
-		connect(this->m_displayThread, SIGNAL(displayFinish(&HectoBioWindow)), this, SLOT(test_displaythread(&HectoBioWindow)));
-		//connect(this->m_displayThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+		//åˆå§‹åŒ–signalPlot
+		if (save_flag)
+		{
+			//ä¿å­˜æ•°æ®
+			QFileDialog* filedialog = new QFileDialog(this);
+			filedialog->setWindowTitle("save file");
+			filedialog->setDirectory(".");
+			//filedialog->show();
+
+			filedialog->setNameFilterDetailsVisible(true);
+			//filedialog->
+			filedialog->setFileMode(QFileDialog::AnyFile);
+			filedialog->setViewMode(QFileDialog::Detail);
+			//filedialog->setNameFilter(tr("Serials File(*.xml *.html *.json *.txt"));
+
+			savefile_name = filedialog->getSaveFileName(nullptr, nullptr, nullptr, QString(tr("All file(*.*)")));
+			
+			ui.textBrowser->append(savefile_name);
+			filedialog->destroyed();
+		}
+		
+		if (0 )
+		{
+			displaySample_freq = sample_freq;
+			if (displaySample_freq > READ_DATA_LENGTH)
+			{
+				READ_DATA_LENGTH = READ_DATA_LENGTH * 10;
+			}
+
+
+			for (int i = 0; i < READ_DATA_LENGTH; i++)
+			{
+				display_xs.append(i);
+				display_ys.append(0);
+				factDisplayData.append(0);
+			}
+			display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+
+			curve->setData(display_xy_data);
+
+			curve->attach(ui.signalPlot);
+
+
+			ui.signalPlot->replot();
+			//
+			//qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
+			//displayUpdateTimer = new QTimer(this);
+			displayUpdateTimer = new QTimer(this);
+			connect(displayUpdateTimer, &QTimer::timeout, this, &HectoBioWindow::timerUpdate);
+
+			//dispay_timer = this->startTimer(100);
+
+			m_displayThread = new DisplayThread(this);
+			connect(this, SIGNAL(startDisplayThread(QString, HANDLE&)), m_displayThread, SLOT(recvMegFromMain(QString, HANDLE&)));
+			//ï¿½È´ï¿½ï¿½ï¿½ï¿½ß³Ì£ï¿½ï¿½Ú¿ï¿½Ê¼ï¿½ï¿½Ê±ï¿½ï¿½
+			emit startDisplayThread(savefile_name, linkdevice);
+			//emit startDisplayThread(QString("ï¿½ï¿½Ã£ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ß³ï¿½"), linkdevice);
+
+
+			m_displayThread->start();
+			//displayUpdateTimer->start(1000/24);//0.001sï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+			update_cycle = READ_DATA_LENGTH / 1024;
+			displayUpdateTimer->start((1000/update_cycle)+1);
+			display_stop_flag = false;
+
+			//update_cycle = READ_DATA_LENGTH / sample_freq;
+			
+		}
+		if (1)
+		{
+			displaySample_freq = sample_freq;
+			/*if (displaySample_freq>READ_DATA_LENGTH)
+			{
+				READ_DATA_LENGTH =READ_DATA_LENGTH*10;
+			}*/
+			READ_DATA_LENGTH = 1024;
+
+			if (displaySample_freq > READ_DATA_LENGTH)
+			{
+				int c = ceil(displaySample_freq / READ_DATA_LENGTH) + 1;
+				READ_DATA_LENGTH = READ_DATA_LENGTH * c;
+			}
+
+
+			for (int i = 0; i < READ_DATA_LENGTH; i++)
+			{
+				display_xs.append(i);
+				display_ys.append(0);
+				factDisplayData.append(0);
+			}
+			display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+
+			curve->setData(display_xy_data);
+
+			curve->attach(ui.signalPlot);
+
+
+			ui.signalPlot->replot();
+			//
+			//qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
+			//displayUpdateTimer = new QTimer(this);
+			displayUpdateTimer = new QTimer(this);
+			connect(displayUpdateTimer, &QTimer::timeout, this, &HectoBioWindow::timerUpdate);
+
+			//dispay_timer = this->startTimer(100);
+
+			m_displayThread = new DisplayThread(this);
+			connect(this, SIGNAL(startDisplayThread(QString, HANDLE&)), m_displayThread, SLOT(recvMegFromMain(QString, HANDLE&)));
+			//å…ˆåˆ›å»ºçº¿ç¨‹ï¼Œåœ¨å¼€å§‹è®¡æ—¶å™¨
+			emit startDisplayThread(savefile_name, linkdevice);
+			//emit startDisplayThread(QString("ä½ å¥½ï¼Œæ˜¾ç¤ºå­çº¿ç¨‹"), linkdevice);
+
+
+			m_displayThread->start();
+			//displayUpdateTimer->start(1000/24);//0.001sæ›´æ–°ä¸€æ¬¡
+			update_cycle = READ_DATA_LENGTH / 1024;
+			ui.signalPlot->setAxisScale(QwtPlot::xBottom, 0, READ_DATA_LENGTH, 0);
+			ui.signalPlot->setAxisScale(QwtPlot::yLeft, -200, 200, 0);
+			displayUpdateTimer->start(1000 / update_cycle);
+			display_stop_flag = false;
+
+			//update_cycle = READ_DATA_LENGTH / sample_freq;
+
+			//connect(this->m_displayThread, SIGNAL(finished()), this, SLOT(FinishThread()));
+
+			//delete display_xy_data;
+		}
+		
 	}
 	
-
-	
-	//deleteÄÚ´æ
-	for (i=0;i<MAX_SEGMENT;i++)
-	{
-		delete[] dataBuff[i];
-	}
-
 	return;
 }
+
+void HectoBioWindow::timerUpdate() {
+	
+	//æ–¹æ³•ä¸€  ä»…ä½¿ç”¨å®šæ—¶å™¨
+	//bool status=USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+
+	//if (status)
+	//{
+	//	
+	//	for (int i = 0; i < 500; i++)
+	//	{
+	//		display_time[i] = i;
+	//		double level = (inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+	//		level = (level * (double)1000 + 0.5977) / 0.9854;
+	//		display_val[i] = level;
+	//		 
+	//	}
+	//	
+	//	curve->setSamples(display_time, display_val, 500);
+	//	//curve->setSamples(time, displayDataBuff[CurrentIndex], 500);
+	//	ui.signalPlot->replot();
+	//}
+	//æ–¹æ³•äºŒ  å­çº¿ç¨‹æ›´æ–°æ•°æ®ï¼Œå®šæ—¶å™¨æ›´æ–°æ˜¾ç¤º  //æ•°æ®æ›´æ–°éœ€è¦æ ¹æ®é€‰ä¸­é¢‘ç‡åŠ¨æ€è°ƒæ•´
+	
+	if (1)
+	{
+		//1024*100  / 1024 *10=1000
+		//æ¯æ¬¡æ›´æ–°ç‚¹æ•°
+		int sam = READ_DATA_LENGTH / 1024 * 10;
+		sam = 1024;
+		for (int i = 0; i < READ_DATA_LENGTH - sam; i++)
+		{
+			display_ys[i] = display_ys[i + sam];
+
+		}
+		update_cycle--;
+
+		//display_ys[READ_DATA_LENGTH - 1] = qrand()%500;
+		for (int k = sam; k > 0; k--)
+		{
+			//display_ys[READ_DATA_LENGTH - k] = factDisplayData[sam-k];
+			//æ¯æ¬¡æ›´æ–°æœ€åä¸€åƒä¸ªç‚¹
+			display_ys[READ_DATA_LENGTH - k] = factDisplayData[READ_DATA_LENGTH - (update_cycle)*sam - k];
+		}
+		if (update_cycle == 0)
+		{
+			update_cycle = READ_DATA_LENGTH / sam;
+		}
+		//display_ys[READ_DATA_LENGTH-1]
+		display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+
+		//ui.signalPlot->setAxisAutoScale(QwtPlot::xBottom, true);
+		//ui.signalPlot->setAxisAutoScale(QwtPlot::yLeft,true);
+		curve->setData(display_xy_data);
+		//curve->attach(ui.signalPlot);
+		ui.signalPlot->replot();
+
+	}
+
+	if (0)
+	{
+		int sam = READ_DATA_LENGTH / 1024 * 10;
+		for (int i = 0; i < sam; i++)
+		{
+			display_ys[READ_DATA_LENGTH - 1-(sam-i)] = factDisplayData[data_offset%READ_DATA_LENGTH];
+		}
+		for (int i=0;i<READ_DATA_LENGTH;i++)
+		{
+			int pre = data_offset % READ_DATA_LENGTH;
+			int pos = (data_offset+1) % READ_DATA_LENGTH;
+			display_ys[pre] = display_ys[pos];
+			data_offset++;
+			//data_offset = (data_offset + 1) % READ_DATA_LENGTH;
+		}
+		display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+		curve->setData(display_xy_data);
+		ui.signalPlot->replot();
+	}
+	
+
+	//æ–¹æ³•ä¸‰ï¼Œçª—å£åˆ†ç¦»ï¼Œä¸ä¼šé€ æˆå¡é¡¿
+	//è¿™ç§æ–¹å¼ä¼šé€ æˆæ˜¾ç¤ºå’Œè®¾ç½®ä¸åœ¨åŒä¸€ç•Œé¢
+}
+
 
 void HectoBioWindow::readAD_data() {
 	PSHORT inBuffer = NULL;
 	ULONG status = FALSE;
 
-	//·Å½øÏß³ÌÀïÃæ
+	//æ”¾è¿›çº¿ç¨‹é‡Œé¢
 	bool stutas = USB2069_ReadAD(linkdevice, dataBuff[0], read_data_length);
 
-	/*const char* savefile = "C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5";
+	/*const char* savefile = "C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH1.h5";
 	FILE* fp = fopen(savefile, "w");
 
 	fwrite(dataBuff[0], sizeof(unsigned short), 2400, fp);
@@ -662,14 +855,6 @@ void HectoBioWindow::readAD_data() {
 		data[i] = data[i] * 1000;
 		data[i] = (data[i] + 0.5977) / 0.9854;
 	}
-
-	if (stutas)
-	{
-		saveDataAsText(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5"), data);
-		//saveDataAsStream(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5"), data);
-		//saveDataAsHdf5("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5", data);
-	}
-
 
 }
 	
@@ -678,10 +863,10 @@ void HectoBioWindow::readAD_data() {
 void HectoBioWindow::displayAD_data() {
 
 
-	//·Å½øÏß³ÌÀïÃæ
+	//æ”¾è¿›çº¿ç¨‹é‡Œé¢
 	bool stutas = USB2069_ReadAD(linkdevice, dataBuff[0], read_data_length);
 
-	/*const char* savefile = "C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5";
+	/*const char* savefile = "C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH1.h5";
 	FILE* fp = fopen(savefile, "w");
 
 	fwrite(dataBuff[0], sizeof(unsigned short), 2400, fp);
@@ -697,9 +882,9 @@ void HectoBioWindow::displayAD_data() {
 
 	if (stutas)
 	{
-		saveDataAsText(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5"), data);
-		//saveDataAsStream(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5"), data);
-		//saveDataAsHdf5("C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH1.h5", data);
+		saveDataAsText(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH1.h5"), data);
+		//saveDataAsStream(QString::fromLocal8Bit("C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH1.h5"), data);
+		//saveDataAsHdf5("C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH1.h5", data);
 	}
 }
 
@@ -707,39 +892,88 @@ void HectoBioWindow::displayAD_data() {
 
 
 /*************************************************
-   //Í£Ö¹Á¬Ğø²É¼¯²Ûº¯Êı
+   //åœæ­¢è¿ç»­é‡‡é›†æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_stopCtnAcq_btn() {
 	if (1)
 	{
 		if (!device_flag)
 			{
-				QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-				ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+				QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+				ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 				return;
 			}
-			//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+			//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 			if (selected_chn_sum == 0)
 			{
-				QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-				ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+				QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+				ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 				return;
 			}
-			//Èç¹û»¹Ã»¿ªÊ¼¼ì²â¾Íµã½áÊø£¬±¨´íÆô¶¯¼ì²â£¬»òpass
+			//å¦‚æœè¿˜æ²¡å¼€å§‹æ£€æµ‹å°±ç‚¹ç»“æŸï¼ŒæŠ¥é”™å¯åŠ¨æ£€æµ‹ï¼Œæˆ–pass
 			if (USB2069_StopAD(linkdevice, devNum))
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("¹Ø±ÕAD³É¹¦"));
+				ui.textBrowser->append(QString::fromLocal8Bit("å…³é—­ADæˆåŠŸ"));
 			}
 	}
 	
-	//Ê¹ÄÜ²É¼¯²ÎÊı°´Å¥
+	if (ADRun && save_flag && display_flag==false)
+	{
+		connect(this, SIGNAL(stopReadThread(bool)), m_readThread, SLOT(recvStopSignal(bool)));
+		connect(m_readThread, SIGNAL(readFinish(QString)), this, SLOT(test_readthread(QString)));
+		save_flag = false;
+		display_flag = false;
+		m_readThread->quit();
+		m_readThread->destroyed();
+		emit stopReadThread(true);
+		emit m_readThread->readFinish("save end");
+		//
+	}
+	else if (ADRun && display_flag )
+	{
+		
+		connect(this, SIGNAL(stopDisplayThread(bool)), m_displayThread, SLOT(recvStopSignal(bool)));
+		connect(m_displayThread, SIGNAL(displayFinish(QString)), this, SLOT(test_displaythread(QString)));
+		
+		save_flag = false;
+		display_flag = false;
+		m_displayThread->quit();
+		m_displayThread->destroyed();
+
+		emit stopDisplayThread(true);
+		emit m_displayThread->displayFinish("display end");
+		//this->killTimer(dispay_timer);
+		displayUpdateTimer->stop();
+
+		delete displayUpdateTimer;
+
+
+		curve->detach();
+		ui.signalPlot->setAutoReplot(true);
+		/*for (int i=0;i<READ_DATA_LENGTH;i++)
+		{
+			display_xs[i] = i;
+			display_ys[i] = 0;
+		}
+		display_xy_data = new QwtPointArrayData(display_xs, display_ys);
+		curve->setData(display_xy_data);
+		curve->attach(ui.signalPlot);
+		ui.signalPlot->replot();*/
+	}
+	
+	//emit readFinish(QString("have been displayed"));
+	//QThread::msleep(15);
+	//emit displayFinish(QString("have been displayed"));
+	//QThread::msleep(15);
+	
+	//ä½¿èƒ½é‡‡é›†å‚æ•°æŒ‰é’®
 	setTrigPara(true);
 
 	return;
 }
 
 void HectoBioWindow::setTrigPara(bool set) {
-	//Í¨µÀ
+	//é€šé“
 	QCheckBox* all_chncheckBox[24] = { ui.CH1,ui.CH2 ,ui.CH3 ,ui.CH4 ,ui.CH5 ,ui.CH6,
 	ui.CH7,ui.CH8 ,ui.CH9 ,ui.CH10 ,ui.CH11 ,ui.CH12,
 	ui.CH13,ui.CH14 ,ui.CH15 ,ui.CH16 ,ui.CH17 ,ui.CH18,
@@ -752,7 +986,7 @@ void HectoBioWindow::setTrigPara(bool set) {
 	ui.chncancelAll->setEnabled(set);
 	ui.selectchnOK->setEnabled(set);
 
-	//Á¬Ğø²É¼¯²ÎÊı
+	//è¿ç»­é‡‡é›†å‚æ•°
 	ui.trigModel->setEnabled(set);
 	ui.trigSource->setEnabled(set);
 	ui.trigLength->setEnabled(set);
@@ -760,17 +994,18 @@ void HectoBioWindow::setTrigPara(bool set) {
 	ui.trigLevel->setEnabled(set);
 	ui.delayTime->setEnabled(set);
 	ui.acqparaBtnOK->setEnabled(set);
-	//Á¬Ğø²É¼¯ºÍµ¥´Î²É¼¯»¥³â
+	//è¿ç»­é‡‡é›†å’Œå•æ¬¡é‡‡é›†äº’æ–¥
 	ui.ctnscqStart->setEnabled(set);
 	ui.ctnscqEnd->setEnabled(!set);
 	ui.singleacqEnd->setEnabled(set);
 	ui.ctnscqDisplay->setEnabled(set);
+	ui.ctnscqSave->setEnabled(set);
 	ui.ctnacqMutliSelcet->setEnabled(set);
 	ui.singleacqTime->setEnabled(set);
 }
 
 /*************************************************
-   //µ¥´Î²É¼¯²Ûº¯Êı
+   //å•æ¬¡é‡‡é›†æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_singleAcq_btn() {
 	
@@ -782,15 +1017,15 @@ void HectoBioWindow::on_singleAcq_btn() {
 	{
 		if (!device_flag)
 			{
-				QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-				ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+				QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+				ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 				return;
 			}
-			//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+			//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 			if (selected_chn_sum == 0)
 			{
-				QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-				ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+				QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+				ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 				return;
 			}
 	}
@@ -798,9 +1033,9 @@ void HectoBioWindow::on_singleAcq_btn() {
 
 	if (0)
 	{
-		//Èç¹û»¹Ã»¿ªÊ¼¼ì²â¾Íµã½áÊø£¬±¨´íÆô¶¯¼ì²â£¬»òpass
+		//å¦‚æœè¿˜æ²¡å¼€å§‹æ£€æµ‹å°±ç‚¹ç»“æŸï¼ŒæŠ¥é”™å¯åŠ¨æ£€æµ‹ï¼Œæˆ–pass
 			acq_flag = SINGLE_ACQ;
-			ui.textBrowser->append(QString::fromLocal8Bit("µ¥´Î²É¼¯Ä£Ê½£º"));
+			ui.textBrowser->append(QString::fromLocal8Bit("å•æ¬¡é‡‡é›†æ¨¡å¼ï¼š"));
 
 			for (int i = 0; i < 24; i++)
 			{
@@ -813,7 +1048,7 @@ void HectoBioWindow::on_singleAcq_btn() {
 			para_init.TriggerMode = trig_mode;
 			para_init.TriggerSource = trig_source;
 
-			//¶ÁÈ¡Êı¾İ³¤¶È£¬Èí¼ş´¥·¢Ö»¶ÁÈ¡Ò»¸ö´¥·¢³¤¶È
+			//è¯»å–æ•°æ®é•¿åº¦ï¼Œè½¯ä»¶è§¦å‘åªè¯»å–ä¸€ä¸ªè§¦å‘é•¿åº¦
 			if (para_init.TriggerMode==TRIG_SRC_SOFT)
 			{
 				samcnt = para_init.TriggerLength * TRIG_UNIT;
@@ -827,7 +1062,7 @@ void HectoBioWindow::on_singleAcq_btn() {
 
 			if (USB2069_InitAD(linkdevice, &para_init))
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("³õÊ¼»¯AD³É¹¦"));
+				ui.textBrowser->append(QString::fromLocal8Bit("åˆå§‹åŒ–ADæˆåŠŸ"));
 			}
 
 			PUSHORT inBuffer = NULL;
@@ -837,21 +1072,21 @@ void HectoBioWindow::on_singleAcq_btn() {
 			LONG bufover=0;
 			if (!USB2069_GetBufOver(linkdevice,&bufover))
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("¶ÁÈ¡»º´æÒç³öÎ»Ê§°Ü"));
+				ui.textBrowser->append(QString::fromLocal8Bit("è¯»å–ç¼“å­˜æº¢å‡ºä½å¤±è´¥"));
 			}
 			if (bufover==1)
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("»º´æÒç³ö"));
+				ui.textBrowser->append(QString::fromLocal8Bit("ç¼“å­˜æº¢å‡º"));
 			}
 
 
-			//¼ÇµÃÌí¼ÓÊı¾İ¸üĞÂºÍÍ¼ÏñÊµÊ±ÏÔÊ¾
+			//è®°å¾—æ·»åŠ æ•°æ®æ›´æ–°å’Œå›¾åƒå®æ—¶æ˜¾ç¤º
 			/*Sleep(ui.singleacqTime->text().toInt());*/
 
-			//½áÊø²É¼¯
+			//ç»“æŸé‡‡é›†
 			if (USB2069_StopAD(linkdevice,devNum))
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("¹Ø±ÕAD³É¹¦"));
+				ui.textBrowser->append(QString::fromLocal8Bit("å…³é—­ADæˆåŠŸ"));
 				goto savedata;
 			}
 		savedata:
@@ -863,7 +1098,7 @@ void HectoBioWindow::on_singleAcq_btn() {
 				if (para_init.lEnCh[k])
 				{
 					LONGLONG sst = 0;
-					//ÏÈÈ¡Êı¾İ
+					//å…ˆå–æ•°æ®
 					for (int j = 0; j < (int)sscnt; j++)
 					{
 						buf[j] = inBuffer[selected_chn_sum * j + chcnt];
@@ -872,7 +1107,7 @@ void HectoBioWindow::on_singleAcq_btn() {
 
 					char filename[100];
 
-					sprintf(filename, "C:\\Users\\LJ\\Desktop\\ĞÅºÅÎÄ¼ş\\CH%d.h5", (k + 1));
+					sprintf(filename, "C:\\Users\\LJ\\Desktop\\ä¿¡å·æ–‡ä»¶\\CH%d.h5", (k + 1));
 
 					saveDataAsHdf5(filename, buf);
 				}
@@ -889,21 +1124,21 @@ void HectoBioWindow::on_singleAcq_btn() {
 }
 
 BOOL HectoBioWindow::readUSB(PUSHORT pBuf, int bufsize) {
-	//Ò»´Î¶ÁÍêsamcnt³¤¶ÈÊı¾İ£¬ÀıÈçÒ»¸ö´¥·¢³¤¶È£¬Èç¹ûsamcnt´óÓÚREAD_MAX_LEN£¬Ôò·ÖÎª¶à´Î¶ÁÈ¡
-	ULONG DataOver = 0; //»º´æÇøÒç³öÖ¸Ê¾
-	ULONG rlen = 0;//Ã¿´Î¶ÁÈ¡³¤¶È
-	ULONG alen = 0;//ÒÑ¾­¶ÁÈ¡³¤¶È
-	int rcnt = 0;//×Ü¹²ĞèÒª¶ÁÈ¡µÄ´ÎÊı
-	if ((bufsize % READ_MAX_LEN) == 0)//Èç¹û¶ÁÈ¡µÄ³¤¶È£¬¸ÕºÃÊÇ×î´óÔÊĞí¶ÁÈ¡³¤¶ÈµÄÕûÊı±¶
+	//ä¸€æ¬¡è¯»å®Œsamcnté•¿åº¦æ•°æ®ï¼Œä¾‹å¦‚ä¸€ä¸ªè§¦å‘é•¿åº¦ï¼Œå¦‚æœsamcntå¤§äºREAD_MAX_LENï¼Œåˆ™åˆ†ä¸ºå¤šæ¬¡è¯»å–
+	ULONG DataOver = 0; //ç¼“å­˜åŒºæº¢å‡ºæŒ‡ç¤º
+	ULONG rlen = 0;//æ¯æ¬¡è¯»å–é•¿åº¦
+	ULONG alen = 0;//å·²ç»è¯»å–é•¿åº¦
+	int rcnt = 0;//æ€»å…±éœ€è¦è¯»å–çš„æ¬¡æ•°
+	if ((bufsize % READ_MAX_LEN) == 0)//å¦‚æœè¯»å–çš„é•¿åº¦ï¼Œåˆšå¥½æ˜¯æœ€å¤§å…è®¸è¯»å–é•¿åº¦çš„æ•´æ•°å€
 		rcnt = (bufsize / READ_MAX_LEN);
 	else
 		rcnt = (bufsize / READ_MAX_LEN) + 1;
-	//·Ö¶à´Î¶ÁÈ¡£¬Ã¿´Î¶Á×î´ó³¤¶ÈÊÇREAD_MAX_LEN
+	//åˆ†å¤šæ¬¡è¯»å–ï¼Œæ¯æ¬¡è¯»æœ€å¤§é•¿åº¦æ˜¯READ_MAX_LEN
 	for (int i = 0; i < rcnt; i++)
 	{
-		if (i == (rcnt - 1))//Èç¹ûÊÇ×îºóÒ»´Î
+		if (i == (rcnt - 1))//å¦‚æœæ˜¯æœ€åä¸€æ¬¡
 		{
-			if ((bufsize % READ_MAX_LEN) == 0)//Èç¹û¸ÕºÃÊÇÕûÊı±¶
+			if ((bufsize % READ_MAX_LEN) == 0)//å¦‚æœåˆšå¥½æ˜¯æ•´æ•°å€
 				rlen = READ_MAX_LEN;
 			else
 				rlen = bufsize % READ_MAX_LEN;
@@ -912,15 +1147,15 @@ BOOL HectoBioWindow::readUSB(PUSHORT pBuf, int bufsize) {
 		{
 			rlen = READ_MAX_LEN;
 		}
-		//¶ÁÊı 
+		//è¯»æ•° 
 		if (!USB2069_ReadAD(linkdevice, pBuf + alen, rlen))
 		{
-			ui.textBrowser->append(QString::fromLocal8Bit("¶ÁÈ¡Êı¾İÊ§°Ü"));
+			ui.textBrowser->append(QString::fromLocal8Bit("è¯»å–æ•°æ®å¤±è´¥"));
 			
 			break;
 			return FALSE;
 		}
-		//ÅĞ¶ÏÊı¾İÊÇ·ñÒç³ö
+		//åˆ¤æ–­æ•°æ®æ˜¯å¦æº¢å‡º
 		alen += rlen;
 	}
 	return TRUE;
@@ -928,26 +1163,26 @@ BOOL HectoBioWindow::readUSB(PUSHORT pBuf, int bufsize) {
 
 
 /*************************************************
-   //DA0-DA3¹¦ÄÜ²Ûº¯Êı
-   4Í¨µÀ¶ÀÁ¢DA×ª»»Æ÷£¬DA²Ù×÷ºÍADÏà»¥¶ÀÁ¢
-   DA£ºÊı¾İÀ´×ÔPC×Ô¼º²úÉúµÄÄ£Äâ²¨ĞÎ   AD£ºÊı¾İÀ´×Ô²É¼¯¿¨--->PC
+   //DA0-DA3åŠŸèƒ½æ§½å‡½æ•°
+   4é€šé“ç‹¬ç«‹DAè½¬æ¢å™¨ï¼ŒDAæ“ä½œå’ŒADç›¸äº’ç‹¬ç«‹
+   DAï¼šæ•°æ®æ¥è‡ªPCè‡ªå·±äº§ç”Ÿçš„æ¨¡æ‹Ÿæ³¢å½¢   ADï¼šæ•°æ®æ¥è‡ªé‡‡é›†å¡--->PC
 ***************************************************/
 
 void HectoBioWindow::on_DA0_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
-	//Ñ¡ÔñÕıÏÒ²¨»ò·½²¨
+	//é€‰æ‹©æ­£å¼¦æ³¢æˆ–æ–¹æ³¢
 	int da0index=0;
 	da0index= ui.da0MutliSelect->currentIndex();
 	long da0freq = da_freq;
@@ -964,20 +1199,25 @@ void HectoBioWindow::on_DA0_btn() {
 
 
 	PUSHORT data_buf = NULL;
-	data_buf=new USHORT[read_data_length];
+	data_buf=new USHORT[da0point];
 	
 	if (da0cycle > 0)
 	{
 		da0enable_cycle = true;
 	}
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i=0;i<da0point;i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	bool ret_DA_flag = 0;
 
-	ret_DA_flag=USB2069_SetDA(linkdevice, DA0, da0enable, &da0freq, da0enable_cycle, da0cycle, stopflag, data_buf, da0point);
+	ret_DA_flag=USB2069_SetDA(linkdevice, DA0, da0enable, &da0freq, da0enable_cycle, da0cycle, DA_END_NO_PRD, data_buf, da0point);
 
 	if (ret_DA_flag)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("DA0ÉèÖÃÍê±Ï"));
+		ui.textBrowser->append(QString::fromLocal8Bit("DA0è®¾ç½®å®Œæ¯•"));
 		
 	}
 	delete[] data_buf;
@@ -989,18 +1229,18 @@ void HectoBioWindow::on_DA0_btn() {
 void HectoBioWindow::on_DA1_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
-	//Ñ¡ÔñÕıÏÒ²¨»ò·½²¨
+	//é€‰æ‹©æ­£å¼¦æ³¢æˆ–æ–¹æ³¢
 	int da1index = 0;
 	da1index = ui.da1MutliSelect->currentIndex();
 	long da1freq = da_freq;
@@ -1013,17 +1253,22 @@ void HectoBioWindow::on_DA1_btn() {
 	da1enable = ui.da1start->checkState();
 	bool da1enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da1point];
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i = 0; i < da1point; i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	if (da1cycle > 0)
 	{
 		da1enable_cycle = true;
 	}
 
-	bool ret_DA_flag = USB2069_SetDA(linkdevice, DA1, da1enable, &da1freq, da1enable_cycle, da1cycle, stopflag, data_buf, da1point);
+	bool ret_DA_flag = USB2069_SetDA(linkdevice, DA1, da1enable, &da1freq, da1enable_cycle, da1cycle, DA_END_NO_PRD, data_buf, da1point);
 	if (ret_DA_flag)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("DA1ÉèÖÃÍê±Ï"));
+		ui.textBrowser->append(QString::fromLocal8Bit("DA1è®¾ç½®å®Œæ¯•"));
 	}
 	delete[] data_buf;
 
@@ -1032,18 +1277,18 @@ void HectoBioWindow::on_DA1_btn() {
 void HectoBioWindow::on_DA2_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
-	//Ñ¡ÔñÕıÏÒ²¨»ò·½²¨
+	//é€‰æ‹©æ­£å¼¦æ³¢æˆ–æ–¹æ³¢
 	int da2index = 0;
 	da2index = ui.da2MutliSelect->currentIndex();
 	long da2freq = da_freq;
@@ -1056,13 +1301,13 @@ void HectoBioWindow::on_DA2_btn() {
 	da2enable = ui.da2start->checkState();
 	bool da2enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da2point];
 
-	USHORT offset_value = ui.da_offset_voltage->text().toInt();
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
 	
-	for (int i=0;i<read_data_length;i++)
+	for (int i=0;i<da2point;i++)
 	{
-		data_buf[i] = offset_value;
+		data_buf[i] =(WORD) offset_value;
 	}
 
 	if (da2cycle > 0)
@@ -1071,10 +1316,10 @@ void HectoBioWindow::on_DA2_btn() {
 	}
 
 	bool ret_DA_flag = 0;
-	ret_DA_flag = USB2069_SetDA(linkdevice, DA2, da2enable, &da2freq, da2enable_cycle, da2cycle, stopflag, data_buf, da2point);
+	ret_DA_flag = USB2069_SetDA(linkdevice, DA2, da2enable, &da2freq, da2enable_cycle, da2cycle, DA_END_NO_PRD, data_buf, da2point);
 	if (ret_DA_flag)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("DA2ÉèÖÃÍê±Ï"));
+		ui.textBrowser->append(QString::fromLocal8Bit("DA2è®¾ç½®å®Œæ¯•"));
 		ui.textBrowser->append(ui.da_offset_voltage->text());
 	}
 	delete[] data_buf;
@@ -1084,18 +1329,18 @@ void HectoBioWindow::on_DA2_btn() {
 void HectoBioWindow::on_DA3_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
-	//Ñ¡ÔñÕıÏÒ²¨»ò·½²¨
+	//é€‰æ‹©æ­£å¼¦æ³¢æˆ–æ–¹æ³¢
 	int da3index = 0;
 	da3index = ui.da3MutliSelect->currentIndex();
 	long da3freq = da_freq;
@@ -1108,7 +1353,12 @@ void HectoBioWindow::on_DA3_btn() {
 	da3enable = ui.da3start->checkState();
 	bool da3enable_cycle = false;
 	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[read_data_length];
+	PUSHORT data_buf = new USHORT[da3point];
+	USHORT offset_value = ui.da_offset_voltage->text().toDouble();
+	for (int i = 0; i < da3point; i++)
+	{
+		data_buf[i] = (WORD)offset_value;
+	}
 
 	if (da3cycle > 0)
 	{
@@ -1116,10 +1366,10 @@ void HectoBioWindow::on_DA3_btn() {
 	}
 
 	bool ret_DA_flag = 0;
-	ret_DA_flag = USB2069_SetDA(linkdevice, DA3, da3enable, &da3freq, da3enable_cycle, da3cycle, stopflag, data_buf, da3point);
+	ret_DA_flag = USB2069_SetDA(linkdevice, DA3, da3enable, &da3freq, da3enable_cycle, da3cycle, DA_END_NO_PRD, data_buf, da3point);
 	if (ret_DA_flag)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("DA3ÉèÖÃÍê±Ï"));
+		ui.textBrowser->append(QString::fromLocal8Bit("DA3è®¾ç½®å®Œæ¯•"));
 	}
 	delete[] data_buf;
 
@@ -1127,30 +1377,30 @@ void HectoBioWindow::on_DA3_btn() {
 }
 
 /*************************************************
-   //ÁãÆ«
-//»ùÏß¶ÁÈ¡²Ûº¯Êı
+   //é›¶å
+//åŸºçº¿è¯»å–æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_baselineRd_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
-	//Ñ¡ÔñÍ¨µÀºó
+	//é€‰æ‹©é€šé“å
 	
 
 	QString offset_text;
 	
 	long val[24] = { 0 };
-	//Îª24¸öÍ¨µÀÖĞÑ¡ÖĞµÄÍ¨µÀ¾ùÉèÖÃÁãÆ«
+	//ä¸º24ä¸ªé€šé“ä¸­é€‰ä¸­çš„é€šé“å‡è®¾ç½®é›¶å
 	for (LONG i=0;i<24;i++)
 	{
 		
@@ -1158,13 +1408,13 @@ void HectoBioWindow::on_baselineRd_btn() {
 		{
 			if (!USB2069_ADoffset(linkdevice, READOFFSET, i, &val[i]));
 			{
-				ui.textBrowser->append(QString::fromLocal8Bit("¶ÁÈ¡ÁãÆ«Ê§°Ü"));
+				ui.textBrowser->append(QString::fromLocal8Bit("è¯»å–é›¶åå¤±è´¥"));
 				return;
 			}
 		}
 		
 	}
-	ui.textBrowser->append(QString::fromLocal8Bit("¶ÁÈ¡ÁãÆ«³É¹¦"));
+	ui.textBrowser->append(QString::fromLocal8Bit("è¯»å–é›¶åæˆåŠŸ"));
 	
 	for (int i=0;i<24;i++)
 	{
@@ -1182,21 +1432,21 @@ void HectoBioWindow::on_baselineRd_btn() {
 }
 
 /*************************************************
-   //»ùÏßĞ£Õı²Ûº¯Êı
+   //åŸºçº¿æ ¡æ­£æ§½å‡½æ•°
 ***************************************************/
 
 void HectoBioWindow::on_baselineRcv_btn() {
 	if (!device_flag)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Î´¼ì²âµ½ÊäÈëÉè±¸,ÇëÁ¬½ÓÉè±¸"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("æœªæ£€æµ‹åˆ°è¾“å…¥è®¾å¤‡,è¯·è¿æ¥è®¾å¤‡"));
 		return;
 	}
-	//Èç¹ûÃ»ÓĞÑ¡ÔñÍ¨µÀ  ±¨´í
+	//å¦‚æœæ²¡æœ‰é€‰æ‹©é€šé“  æŠ¥é”™
 	if (selected_chn_sum == 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error£¡£¡£¡"), QString::fromLocal8Bit("ÇëºòÑ¡¼ì²âÍ¨µÀ"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("Çë¹´Ñ¡¼ì²âÍ¨µÀ"));
+		QMessageBox::warning(this, QString::fromLocal8Bit("errorï¼ï¼ï¼"), QString::fromLocal8Bit("è¯·å€™é€‰æ£€æµ‹é€šé“"), QMessageBox::Yes);
+		ui.textBrowser->append(QString::fromLocal8Bit("è¯·å‹¾é€‰æ£€æµ‹é€šé“"));
 		return;
 	}
 
@@ -1212,19 +1462,19 @@ void HectoBioWindow::on_baselineRcv_btn() {
 			if (selectedChn[i])
 			{
 				if (!USB2069_ADoffset(linkdevice, WRITEOFFSET, i, &recover_offset)) {
-					ui.textBrowser->append(QString::fromLocal8Bit("Ğ´ÈëÁãÆ«Ê§°Ü"));
+					ui.textBrowser->append(QString::fromLocal8Bit("å†™å…¥é›¶åå¤±è´¥"));
 					return;
 				}
 			}
 			
 		}
-		ui.textBrowser->append(QString::fromLocal8Bit("Ğ´ÈëÁãÆ«³É¹¦\r")+ui.baseline_input->text());
+		ui.textBrowser->append(QString::fromLocal8Bit("å†™å…¥é›¶åæˆåŠŸ\r")+ui.baseline_input->text());
 			
 
 	}
 	catch (...)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit("ÊäÈëĞ£ÕıÆ«ÒÆ£ºdoubleÀàĞÍ"));
+		ui.textBrowser->append(QString::fromLocal8Bit("è¾“å…¥æ ¡æ­£åç§»ï¼šdoubleç±»å‹"));
 	}
 
 	return;
@@ -1232,8 +1482,8 @@ void HectoBioWindow::on_baselineRcv_btn() {
 
 
 /*************************************************
-  //Êä³öĞÅÏ¢
-//±£´æÊä³öĞÅÏ¢
+  //è¾“å‡ºä¿¡æ¯
+//ä¿å­˜è¾“å‡ºä¿¡æ¯
 ***************************************************/
 void HectoBioWindow::on_saveoutinfo_btn() {
 	QFileDialog* filedialog = new QFileDialog(this);
@@ -1266,47 +1516,100 @@ void HectoBioWindow::on_saveoutinfo_btn() {
 }
 
 /*************************************************
-   Çå¿ÕtextBrower
+   æ¸…ç©ºtextBrower
 ***************************************************/
 void HectoBioWindow::on_clearinfo_btn() {
 	ui.textBrowser->clear();
 }
 
 /*************************************************
-  //¶¨Ê±Æ÷
-//Ëæ»ú²úÉú³õÊ¼ĞÅºÅ£¬½öÓÃÓÚµçÂ·Î´µ½Ê±²âÊÔ
+  //å®šæ—¶å™¨
+//éšæœºäº§ç”Ÿåˆå§‹ä¿¡å·ï¼Œä»…ç”¨äºç”µè·¯æœªåˆ°æ—¶æµ‹è¯•
 ***************************************************/
 void HectoBioWindow::timerEvent(QTimerEvent*) {
-	savetestSignal = new double[500];
-
-	for (int i = 0; i < 499; i++)
+	
+	double level;
+	for (int i = 0; i < 49990; i++)
 	{
 		val[i] = val[i + 1];
-		savetestSignal[i] = val[i];
+		ys[i] = ys[i + 1];
 	}
-	val[499] = qrand() % 500;
-	curve->setSamples(time, val, 500);
+	val[49990] = qrand()%50000;
+	ys[49990] = qrand() % 50000;
+	ys[49991] = qrand() % 50000;
+	ys[49992] = qrand() % 50000;
+	ys[49993] = qrand() % 50000;
+	ys[49994] = qrand() % 50000;
+	ys[49995] = qrand() % 50000;
+	ys[49996] = qrand() % 50000;
+	ys[49997] = qrand() % 50000;
+	ys[49998] = qrand() % 50000;
+	ys[49999] = qrand() % 50000;
+	
+	//curve->setSamples(time, val, 500);
+	QwtPointArrayData* displaydata = new QwtPointArrayData(xs, ys);
+	curve->setData(displaydata);
 	ui.signalPlot->replot();
+	// 
+	//PUSHORT inBuffer = new USHORT[read_data_length];
+	//bool status = USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
 
-	return;
+	//if (status)
+	//{
+	//	for (int i = 0; i < 500; i++)
+	//	{
+	//		display_time[i] = i;
+	//		double level = (inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+	//		level = (level * (double)1000 + 0.5977) / 0.9854;
+	//		display_val[i] = level;
+	//	}
+
+	//	curve->setSamples(display_time, display_val, 500);
+	//	//curve->setSamples(time, displayDataBuff[CurrentIndex], 500);
+	//	ui.signalPlot->replot();
+	//}
+	
 }
 
 
 /*************************************************
-   ĞÅºÅÏÔÊ¾×ÓÄ£¿é
-   //ĞÅºÅÏÔÊ¾²Ûº¯Êı
+   ä¿¡å·æ˜¾ç¤ºå­æ¨¡å—
+   //ä¿¡å·æ˜¾ç¤ºæ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_disp_btn() {
 	disp_show_flag = true;
+
 	//ui.signaldispOpenGL->DrawWindowBackground();
 	//QwtPlot* myplot = new QwtPlot("curve display");
-	curve->setSamples(time, val, 500);
-	curve->attach(ui.signalPlot);
+
+	//for (int i=0;i<50000;i++)
+	//{
+	//	time[i] = i;
+	//	val[i] = qrand() % 500;
+	//	xs.append(i);
+	//	ys.append(0);
+	//}
+	if (display_stop_flag==true)
+	{
+		//displayUpdateTimer = new QTimer(this);
+		displayUpdateTimer->start();
+		ui.signalPlot->axisAutoScale(QwtPlot::yLeft);
+		display_stop_flag = false;
+	}
+	else
+	{
+		return;
+	}
+	//QwtPointArrayData* const displaydata = new QwtPointArrayData(xs, ys);
+	////curve->setSamples(time, val, 500);
+	//curve->setData(displaydata);
+	//curve->attach(ui.signalPlot);
+	curve->setData(display_xy_data);
 	ui.signalPlot->replot();
-	ui.textBrowser->append(QString::fromLocal8Bit("¿ªÊ¼ÏÔÊ¾"));
+	ui.textBrowser->append(QString::fromLocal8Bit("å¼€å§‹æ˜¾ç¤º"));
 }
 /*************************************************
-   //É¾³ıĞÅºÅ²Ûº¯Êı
+   //åˆ é™¤ä¿¡å·æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_earse_btn() {
 	if (!disp_show_flag)
@@ -1318,34 +1621,44 @@ void HectoBioWindow::on_earse_btn() {
 	curve->setData(0);
 	//ui.signalPlot->detachItems();
 	ui.signalPlot->replot();
-	ui.textBrowser->append(QString::fromLocal8Bit("Çå³ıÏÔÊ¾"));
+	ui.textBrowser->append(QString::fromLocal8Bit("æ¸…é™¤æ˜¾ç¤º"));
 
 	return;
 
 }
 /*************************************************
-  //ÔİÍ£ĞÅºÅ²Ûº¯Êı
+  //æš‚åœä¿¡å·æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_stop_btn() {
-	if (!disp_show_flag)
+	/*if (!disp_show_flag)
 	{
 		return;
 	}
 	if (!disp_up_flag || !disp_down_flag)
 	{
 	}
-	disp_stop_flag = disp_stop_flag ^ true;
-	this->killTimer(timer);
+	disp_stop_flag = disp_stop_flag ^ true;*/
+	//this->killTimer(timer);
+	if (display_stop_flag==false)
+	{
+		displayUpdateTimer->stop();
+		//displayUpdateTimer->destroyed();
+		display_stop_flag = true;
+	}
+	else
+	{
+		return;
+	}
 	//ui.signalPlot->update();
 	//ui.signalPlot->close();
 
 	//ui.signalPlot->replot();
-	ui.textBrowser->append(QString::fromLocal8Bit("Ôİ¶¨ĞÅºÅÏÔÊ¾"));
+	ui.textBrowser->append(QString::fromLocal8Bit("æš‚å®šä¿¡å·æ˜¾ç¤º"));
 
-	//ÔİÍ£ºó¿ÉÒÔ·Å´ó£¬ËõĞ¡µÈ¹¦ÄÜ
+	//æš‚åœåå¯ä»¥æ”¾å¤§ï¼Œç¼©å°ç­‰åŠŸèƒ½
 
 	QwtPlotZoomer* zoomer = new QwtPlotZoomer(ui.signalPlot->canvas());
-	//Ñ¡¿òÑÕÉ«ÉèÖÃÎªºìÉ«
+	//é€‰æ¡†é¢œè‰²è®¾ç½®ä¸ºçº¢è‰²
 	zoomer->setRubberBandPen(QColor(Qt::red));
 
 	zoomer->setMousePattern(QwtEventPattern::MouseSelect3, Qt::RightButton);
@@ -1353,13 +1666,20 @@ void HectoBioWindow::on_stop_btn() {
 	zoomer->setMousePattern(QwtEventPattern::MouseSelect2, Qt::RightButton, Qt::ControlModifier);
 
 	zoomer->setEnabled(true);
+	ui.signalPlot->replot();
+
+	//deleteå†…å­˜
+	/*for (int i = 0; i < MAX_SEGMENT; i++)
+	{
+		delete[] dataBuff[i];
+	}*/
 
 	return;
 
 }
 
 /*************************************************
-   //¼ÓËÙĞÅºÅ¶Á³ö²Ûº¯Êı
+   //åŠ é€Ÿä¿¡å·è¯»å‡ºæ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_hurry_btn() {
 	if (!disp_show_flag)
@@ -1381,13 +1701,13 @@ void HectoBioWindow::on_hurry_btn() {
 
 	std::string text = std::to_string(time_dur);
 
-	ui.textBrowser->append(QString::fromLocal8Bit("µ±Ç°ÏÔÊ¾ËÙÂÊ£º") + QString::fromStdString(text));
+	ui.textBrowser->append(QString::fromLocal8Bit("å½“å‰æ˜¾ç¤ºé€Ÿç‡ï¼š") + QString::fromStdString(text));
 
 	return;
 }
 
 /*************************************************
-  ¼õËÙĞÅºÅ¶Á³ö²Ûº¯Êı
+  å‡é€Ÿä¿¡å·è¯»å‡ºæ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::on_slow_btn() {
 	if (!disp_show_flag)
@@ -1400,26 +1720,29 @@ void HectoBioWindow::on_slow_btn() {
 	//ui.textBrowser->append("slow down draw signal plot");
 	std::string text = std::to_string(time_dur);
 
-	ui.textBrowser->append(QString::fromLocal8Bit("µ±Ç°ÏÔÊ¾ËÙÂÊ£º")+QString::fromStdString(text));
+	ui.textBrowser->append(QString::fromLocal8Bit("å½“å‰æ˜¾ç¤ºé€Ÿç‡ï¼š")+QString::fromStdString(text));
 
 	return;
 }
 
 /*************************************************
-   ¸üĞÂADÊı¾İ£¬µçÂ·µ½Ö®ºó²âÊÔ
+   æ›´æ–°ADæ•°æ®ï¼Œç”µè·¯åˆ°ä¹‹åæµ‹è¯•(å·²æ›¿æ¢ä¸ºreadThreadå’ŒDisplayThread)
 ***************************************************/
 bool HectoBioWindow::updateAD_data(PUSHORT data_buf) {
 
-	//Ê¾ÀıĞÅºÅ
-	//Ëæ»úÉú³ÉĞÅºÅ
+	//ç¤ºä¾‹ä¿¡å·
+	//éšæœºç”Ÿæˆä¿¡å·
 	for (int i = 0; i < 500; i++)
 	{
 		time[i] = i;
 	}
 
-	ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
+	ui.signalPlot->setTitle(QwtText(""));
 	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
 	ui.signalPlot->setAxisTitle(QwtPlot::xBottom, "time / mS");
+	//ui.signalPlot->setAxisAutoScale(QwtPlot::xBottom, true);
+	ui.signalPlot->setAxisScale(QwtPlot::xBottom, 0, READ_DATA_LENGTH, 0);
+	ui.signalPlot->setAxisAutoScale(QwtPlot::yLeft, true);
 
 	if (data_buf)
 	{
@@ -1432,11 +1755,11 @@ bool HectoBioWindow::updateAD_data(PUSHORT data_buf) {
 }
 
 /*************************************************
-   //±£´æĞÅºÅ²Ûº¯Êı
+   //ä¿å­˜ä¿¡å·æ§½å‡½æ•°
 ***************************************************/
 void HectoBioWindow::save_testSignal_btn() {
-	//±£´æÔİÍ£Ê±ÏÔÊ¾Ö®Ç°µÄÊı¾İ
-	//±£´æ¸ñÊ½Îªhdf5
+	//ä¿å­˜æš‚åœæ—¶æ˜¾ç¤ºä¹‹å‰çš„æ•°æ®
+	//ä¿å­˜æ ¼å¼ä¸ºhdf5
 	if (!disp_stop_flag)
 	{
 		return;
@@ -1456,8 +1779,8 @@ void HectoBioWindow::save_testSignal_btn() {
 	QString save_name = filedialog->getSaveFileName(nullptr,nullptr,nullptr, QString(tr("All file(*.*)")));
 	ui.textBrowser->append(save_name);
 
-	//±£´æÊı¾İ
-	//¿ÉÑ¡±£´æ¸ñÊ½
+	//ä¿å­˜æ•°æ®
+	//å¯é€‰ä¿å­˜æ ¼å¼
 	//saveDataAsStream(save_name,savetestSignal);
 	if (save_name.endsWith("txt"))
 	{
@@ -1472,8 +1795,39 @@ void HectoBioWindow::save_testSignal_btn() {
 }
 
 /*************************************************
-   //±£´æĞÅºÅ¸ñÊ½£ºsaveDataStream
-   ±£´æÎª¶ş½øÖÆÄ£Ê½£¬ÒÔC++ÎÄ¼ş·½Ê½Ğ´
+   //ä¿å­˜ä¿¡å·æ ¼å¼ï¼šsaveDataStream
+   ä¿å­˜ä¸ºäºŒè¿›åˆ¶æ¨¡å¼ï¼Œä»¥C++æ–‡ä»¶æ–¹å¼å†™
+***************************************************/
+void HectoBioWindow::saveQVectordataAsStream(QString& save_name, QVector<double> savedata,char* mode) {
+	if (mode=="nw")
+	{
+		save_file_handle = fopen(save_name.toStdString().c_str(), "w");
+
+	}
+	else if (mode=="w")
+	{
+		for (int i = 0; i < 500; i++)
+		{
+			fwrite(&savedata[i], sizeof(double), 1, save_file_handle);
+		}
+	}
+	else if(mode=="s")
+	{
+		fclose(save_file_handle);
+	}
+	else
+	{
+		return;
+	}
+
+	return;
+
+}
+
+
+/*************************************************
+   //ä¿å­˜ä¿¡å·æ ¼å¼ï¼šsaveDataStream
+   ä¿å­˜ä¸ºäºŒè¿›åˆ¶æ¨¡å¼ï¼Œä»¥C++æ–‡ä»¶æ–¹å¼å†™
 ***************************************************/
 void HectoBioWindow::saveDataAsStream(QString& save_name, double* savedata) {
 	FILE* save_file = fopen(save_name.toStdString().c_str(), "w");
@@ -1490,10 +1844,10 @@ void HectoBioWindow::saveDataAsStream(QString& save_name, double* savedata) {
 }
 
 /*************************************************
-   ±£´æĞÅºÅ£¬ÒÔQTTextStreamÎÄ¼şÁ÷Ğ´
+   ä¿å­˜ä¿¡å·ï¼Œä»¥QTTextStreamæ–‡ä»¶æµå†™
 ***************************************************/
 void HectoBioWindow::saveDataAsText(QString& save_name, double* savedata) {
-	//¿É±£´æÎªhdf5ÎÄ¼ş
+	//å¯ä¿å­˜ä¸ºhdf5æ–‡ä»¶
 	QFile file(save_name);
 	file.open(QIODevice::WriteOnly);
 
@@ -1512,11 +1866,11 @@ void HectoBioWindow::saveDataAsText(QString& save_name, double* savedata) {
 }
 
 /*************************************************
-  ±£´æĞÅºÅ£¬ÒÔHDF5ÎÄ¼şĞ´
+  ä¿å­˜ä¿¡å·ï¼Œä»¥HDF5æ–‡ä»¶å†™
 ***************************************************/
 void HectoBioWindow::saveDataAsHdf5(const char* save_name, double* savedata) {
-	//¿É±£´æÎªhdf5ÎÄ¼ş
-	//µ÷ÓÃHdf5ReadÀà
+	//å¯ä¿å­˜ä¸ºhdf5æ–‡ä»¶
+	//è°ƒç”¨Hdf5Readç±»
 	int row, col;
 	row = 1;
 	col = 500;
@@ -1528,46 +1882,164 @@ void HectoBioWindow::saveDataAsHdf5(const char* save_name, double* savedata) {
 }
 
 void HectoBioWindow::test_readthread(QString line) {
-	ui.textBrowser->append("save");
+	ui.textBrowser->append(line);
 	
 }
 
 void HectoBioWindow::test_displaythread(QString line) {
-	ui.textBrowser->append("display");
+	ui.textBrowser->append(line);
 }
 
 ReadThread::ReadThread(QObject* obj) :
 	m_obj(obj) {
-
+	linkdevice = 0;
+	this->stop_flag = false;
 }
 
+//è¯»å–çº¿ç¨‹
 void ReadThread::run() {
-	//¶ÁÈ¡Ïß³ÌĞèÒª×öµÄÊÂ
-	//QString readf = QString::fromLocal8Bit("¶ÁÈ¡Êı¾İÖĞ...");
-	//¶ÁÈ¡º¯Êı
+	//è¯»å–çº¿ç¨‹éœ€è¦åšçš„äº‹
+	//QString readf = QString::fromLocal8Bit("è¯»å–æ•°æ®ä¸­...");
+	//è¯»å–å‡½æ•°
 	
-	//¶ÁÈ¡Íê±ÏÖ®ºó£¬·¢³ö¶ÁÈ¡Íê±ÏĞÅºÅ
+
+	//è¯»å–å®Œæ¯•ä¹‹åï¼Œå‘å‡ºè¯»å–å®Œæ¯•ä¿¡å·
 	//emit readFinish(readf);
-	emit readFinish(NULL);
-	QThread::msleep(15);
+
+	//emit readFinish(QString("have been save!"));
+	while (!stop_flag)
+	{
+		PUSHORT inBuffer = new USHORT[read_data_length];
+		
+		//qDebug() << "run in save thread" << endl;
+		bool stutas=USB2069_ReadAD(linkdevice, inBuffer, read_data_length);
+		double level = double(inBuffer[0] - 32768) * (1.0 / 32768.0) * 10;
+		level = (level * (double)1000 + 0.5977) / 0.9854;
+		qDebug() << level <<"mv"<< endl;
+		QThread::msleep(100);
+		delete[] inBuffer;
+	}
+
 }
 
+void ReadThread::recvMegFromMain(QString savefile_name,HANDLE& linkdevice) {
+	this->savefile_name = savefile_name;
+	qDebug() << "save thread has recieve " << savefile_name.toStdString().c_str()<<endl;
+	this->linkdevice = linkdevice;
+	qDebug()<<linkdevice<<endl;
+}
+
+void ReadThread::recvStopSignal(bool stop_flag) {
+
+	//this->wait();
+	this->stop_flag = stop_flag;
+	
+	qDebug() << "stop save thread" << endl;
+}
+
+
+//æ˜¾ç¤ºçº¿ç¨‹
 DisplayThread::DisplayThread(QObject* obj):
 	m_obj(obj){
-	
+	linkdevice = 0;
+	/*SignalDisplay* showWindow = new SignalDisplay(nullptr);
+	showWindow->show();*/
 }
 
 void DisplayThread::run() {
-	//ÏÔÊ¾Ïß³ÌĞèÒª×öµÄÊÂ
-	//QString displayf = QString::fromLocal8Bit("ÏÔÊ¾Êı¾İÖĞ...");
-	////ÏÔÊ¾º¯Êı
-	//
+	//æ˜¾ç¤ºçº¿ç¨‹éœ€è¦åšçš„äº‹   çº¿ç¨‹æ•°æ®ä¼ é€’è‡³qwtplotcurveï¼Ÿ
+	// 
+	//QString displayf = QString::fromLocal8Bit("æ˜¾ç¤ºæ•°æ®ä¸­...");
 
-	////ÏÔÊ¾Íê±Ï£¨£©Ö®ºó£¬·¢³öÏÔÊ¾Íê±ÏĞÅºÅ
-	//emit displayFinish(displayf);
-	emit displayFinish(NULL);
-	QThread::msleep(15);
+
+	PUSHORT inBuffer = new USHORT[this->read_data_length];
+	while (!stop_flag)
+	{
+
+		//qDebug() << "run in save thread" << endl;
+		bool stutas = USB2069_ReadAD(linkdevice, inBuffer, this->read_data_length);
+		//double* dataBuffer = new double[read_data_length];
+		//memset(dataBuffer, 0, read_data_length*sizeof(double));
+		if (stutas) {
+			if (display_save_flag && savefile_name != NULL)
+			{
+				
+				for (int i = 0; i < this->read_data_length; i++)
+				{
+					double level = double(inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+					level = (level * (double)1000 + 0.5977) / 0.9854;
+					factDisplayData[i] = level;
+					//dataBuffer[i] = level;
+					*out << level<<"\n";
+				}
+			}
+			else
+			{
+				for (int i = 0; i < this->read_data_length; i++)
+				{
+					double level = double(inBuffer[i] - 32768) * (1.0 / 32768.0) * 10;
+					level = (level * (double)1000 + 0.5977) / 0.9854;
+					factDisplayData[i] = level;
+					//dataBuffer[i] = level;
+				}
+			}
+			
+		
+					//qDebug() << level << "mv" << endl;
+		
+					//å‘é€äº‹ä»¶ç»™ä¸»çª—å£æ˜¾ç¤º
+					//emit--->ä¼ è¾“æ•°æ®
+					//emit sendDisplayDataToWindow(display_ys);
+			//if (display_save_flag && savefile_name != NULL)
+			//{
+			//	//ofstream out(const char*(savefile_name));
+			//	//fwrite(&factDisplayData, sizeof(double), this->read_data_length, save_handle);
+			//	//fwrite(inBuffer, sizeof(USHORT), this->read_data_length, save_handle);
+			//	
+			//	delete[] dataBuffer;
+			//}
+			//æ ¹æ®é‡‡é›†é¢‘ç‡æ›´æ–°bufï¼Œé¢‘ç‡è¶Šå°æ›´æ–°è¶Šæ…¢
+			int delay_time = (double)(this->read_data_length / displaySample_freq) * 1000;
+			QThread::msleep(delay_time);
+		}
+		
+	}
+	
+	delete[] inBuffer;
 }
 
+void DisplayThread::recvMegFromMain(QString savefile_name,HANDLE& linkdevice) {
+	this->read_data_length = READ_DATA_LENGTH;
+	this->savefile_name = savefile_name;
+	if (this->savefile_name!=NULL)
+	{
+		//save_handle = fopen(savefile_name.toStdString().c_str(), "wb");
+		file = new QFile(savefile_name);
+		file->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
+		//QTextStream out(file);
+		out = new QTextStream(file);
+		display_save_flag = true;
+	}
+	qDebug() << "display thread has recieve" << savefile_name.toStdString().c_str() << endl;
+	this->linkdevice = linkdevice;
+	
+}
 
-
+void DisplayThread::recvStopSignal(bool stop_flag) {
+	this->stop_flag = stop_flag;
+	if (this->stop_flag)
+	{
+		if (display_save_flag==true && save_handle)
+		{
+			file->close();
+			//fclose(save_handle);
+		}
+		if (display_save_flag==true&&savefile_name!=NULL)
+		{
+			file->close();
+		}
+		
+		this->display_save_flag = false;
+	}
+	qDebug() << "stop display thread" << endl;
+}

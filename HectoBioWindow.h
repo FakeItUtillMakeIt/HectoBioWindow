@@ -11,9 +11,18 @@
 #include "TimeSerialData.h"
 #include "Hdf5Read.h"
 #include "Circuit.h"
+#include "ReadADDataThread.h"
+#include <QTimer>
+#include <QThread>
+
 
 #define CONTINUE_ACQ 1
 #define SINGLE_ACQ 2
+#define DEFAULT_DEVICE_NUM 0
+#define  MAX_SEGMENT  5
+#define READ_DATA_LENGTH (1024*100)
+
+
 
 class HectoBioWindow : public QMainWindow
 {
@@ -22,10 +31,25 @@ class HectoBioWindow : public QMainWindow
 public:
     HectoBioWindow(QWidget *parent = Q_NULLPTR);
 
+	//线程
+	//单次采集线程
+	ReadADDataThread* read_thread;
+	//连续采集线程
+	ReadADDataThread* ctn_read_thread;
+	//显示线程
+	
+	//定时器
+	QTimer* read_timer;
+
+	//标志区
 	//默认设置连接一个设备
 	bool device_flag;
+	HANDLE linkdevice;
+
 	int selected_chn_sum = 0;
-	int acq_flag = CONTINUE_ACQ;
+	int acq_flag;
+
+	bool ctn_saveflag = false;
 
 	bool disp_show_flag = false;
 	bool disp_stop_flag = false;
@@ -35,6 +59,7 @@ public:
 	const float DEFAULT_DPI = 192.0;
 	float winDpiScale();
 
+	//电路参数
 	void init_window();
 	bool selectedChn[24];
 	int trig_mode = 0;
@@ -50,10 +75,10 @@ public:
 	INT DA2 = 2;
 	INT DA3 = 3;
 
-	//电路驱动类
+	//电路驱动实例化对象
 	Circuit* circuit_set;
 
-	//数据保存类
+	//数据保存实例化对象
 	Hdf5Read* hdf5_op;
 	const char* db_name = "Dataset";
 
@@ -106,6 +131,13 @@ private slots:
 	//保存
 	void save_testSignal_btn();
 
+	//采集Read线程结束函数
+	void dealReadDone();
+	//单次采集Read线程显示函数
+	void displayReadsignal();
+	//
+	void displayCTNReadsignal();
+
 private:
     Ui::HectoBioWindowClass ui;
 
@@ -113,23 +145,76 @@ private:
 	void timerEvent(QTimerEvent*);
 	double time[500];
 	double val[500] = { 0 };
-	USHORT* ad_data;
+
+	//数据缓冲区
+	bool ADRUN = false;
+	//AD溢出位
+	bool ADUpdate = false;
+	bool softTrig = false;
+	ULONG discnt;//显示点数
+	ULONG samcnt;//采样点数
+	BOOL NewSegmentData[MAX_SEGMENT];//确定当前段数据是否为最新数据
+	int CurrentIndex;//数据处理线程缓存索引
+	int ReadIndex;//数据采集线程缓冲索引
+	USHORT* ad_data_buff[MAX_SEGMENT];
 
 	QwtPlotCurve* curve = new QwtPlotCurve("signal");
 
 	int timer = 0;
 	int time_dur = 50;
 
-	double* savetestSignal;
+	double* savetestSignal=new double[8000];
 
 
 private:
 	//电路驱动部分
 	void init_circuit(Circuit* circuit_set);
 	//更新显示的AD数据
-	bool updateAD_data(PUSHORT data_buf);
+	bool updateAD_data();
 
 	void saveDataAsStream(QString& filename, double* savedata);
 	void saveDataAsText(QString& filename, double* savedata);
 	void saveDataAsHdf5(const char* filename, double* savedata);
+
+	QThread thread;
+	protected:
+		void run();
+
+signals:
+	void readisDone();
+
+	private slots:
+		void start();
+};
+
+
+class DrawSignalThread :public QThread {
+	Q_OBJECT
+public:
+	explicit DrawSignalThread(QObject* parent = 0);
+	~DrawSignalThread();
+
+protected:
+	void run();
+
+signals:
+	void isDrawDone();
+
+private:
+};
+
+class DrawPlot:public QObject
+{
+	Q_OBJECT
+public:
+	DrawPlot() {};
+	
+
+public slots:
+	void slot() {
+		qDebug() << "thread slot:" << QThread::currentThreadId();
+	}
+
+private:
+
 };

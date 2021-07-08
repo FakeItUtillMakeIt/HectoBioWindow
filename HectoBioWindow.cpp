@@ -1,3 +1,10 @@
+/************************************************/
+/*更新时间2021年5月27日*/
+/*主要更新：1.QT多线程，2.界面驱动响应*/
+/************************************************/
+/*------------using code utf-8---------------*/
+
+
 #include "HectoBioWindow.h"
 #include "QMessageBox"
 #include <string>
@@ -14,6 +21,12 @@
 #include <QPushButton>
 #include <fstream>
 #include <QBitmap>
+#include <qDebug>
+
+#include <QThread>
+
+
+
 
 using namespace std;
 
@@ -21,6 +34,9 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     ui.setupUi(this);
+
+	
+
 
 	//初始化界面
 	this->init_window();
@@ -37,13 +53,15 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	circuit_set = new Circuit();
 	this->init_circuit(circuit_set);
 
+	
+
 	//初始化数据保存类
 	hdf5_op = new Hdf5Read();
 
 	//初始化主界面设置
 	curve->setPen(Qt::blue, 2);
 	//更新初始数据 从电路出来的数据     电路到之后
-	updateAD_data(NULL);
+	//updateAD_data();
 
 	ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
 	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
@@ -61,13 +79,17 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	act1->setChecked(false);
 	ui.menu_signalView_widget->addAction(act1);
 
+	/*****************************************************************/
 	//比较窗口
-
+	/*****************************************************************/
+	//信号与槽
+	/*****************************************************************/
 	//connect(ui.menuSignal_compare_widget, &QMenu::hovered, this, &HectoBioWindow::on_compare_btn);
 	connect(ui.menuSignal_compare_widget, &QMenu::triggered, this, &HectoBioWindow::on_compare_btn);
 	//挑选信号窗口
 	//connect(ui.menu_signalView_widget, &QMenu::hovered, this, &HectoBioWindow::on_signalView_btn);
 	connect(ui.menu_signalView_widget, &QMenu::triggered, this, &HectoBioWindow::on_signalView_btn);
+
 	//主界面 
 	//通道  全选按钮
 	connect(ui.chnselectAll, &QPushButton::clicked, this, &HectoBioWindow::on_selectAll_btn);
@@ -124,6 +146,9 @@ HectoBioWindow::HectoBioWindow(QWidget *parent)
 	//保存按钮
 	connect(ui.savetestSignalBtn, &QPushButton::clicked, this, &HectoBioWindow::save_testSignal_btn);
 
+	//read_thread = new ReadADDataThread();
+	////线程信号
+	//connect(read_thread, &ReadADDataThread::isReadDone, this, &HectoBioWindow::dealReadDone);
 }
 
 
@@ -147,7 +172,7 @@ void HectoBioWindow::init_circuit(Circuit* circuit_set) {
 	if (device_flag)
 	{
 		ui.textBrowser->append(QString::fromLocal8Bit("已连接设备,设备号为："));
-		ui.textBrowser->append(QString::number(device_flag));
+		ui.textBrowser->append(QString::number(DEFAULT_DEVICE_NUM));
 	}
 	else
 	{
@@ -167,12 +192,13 @@ void HectoBioWindow::init_circuit(Circuit* circuit_set) {
 	circuit_set->trig_length = trig_length;
 	circuit_set->delay = trig_delay;
 
-	bool flag = circuit_set->init_start_AD_device();
+	/*bool flag = circuit_set->init_start_AD_device();
 
 	char* ret_info = circuit_set->ret_flag;
-	ui.textBrowser->append(QString::fromLocal8Bit(ret_info));
-
-
+	ui.textBrowser->append(QString::fromLocal8Bit(ret_info));*/
+	
+	ReadIndex = 0;
+	return;
 }
 
 
@@ -251,9 +277,13 @@ void HectoBioWindow::init_window() {
 	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("外负沿触发"));
 	ui.ctnacqMutliSelcet->addItem(QString::fromLocal8Bit("边沿触发"));
 
+	ui.ctnscqStart->setEnabled(true);
+	ui.ctnscqEnd->setEnabled(false);
+
 	//单次采集
 	//采集时长
 	ui.singleacqTime->setText(QString::number(0));
+	ui.singleacqEnd->setEnabled(true);
 
 	/********************************
 	//DA部分暂时不清楚是用来做什么的？
@@ -307,56 +337,7 @@ void HectoBioWindow::init_window() {
 
 	ui.baseline_input->setText(QString::fromLocal8Bit("输入校正偏移"));
 
-	//界面适配
-	//通道部分
-	/*ui.channelGroup->setGeometry(ui.channelGroup->x()* scale, ui.channelGroup->y()* scale,
-		ui.channelGroup->width()* scale, ui.channelGroup->height()* scale);
-	ui.gridGroupBox_3->setGeometry(ui.gridGroupBox_3->x()*scale,ui.gridGroupBox_3->y()*scale,
-		ui.gridGroupBox_3->width()*scale,ui.gridGroupBox_3->height()*scale);
-
-	ui.gridGroupBox_2->setGeometry(ui.gridGroupBox_2->x()*scale, ui.gridGroupBox_2->y()*scale,
-		ui.gridGroupBox_2->width()* scale, ui.gridGroupBox_2->height()* scale);
-	ui.gridGroupBox_4->setGeometry(ui.gridGroupBox_4->x()* scale, ui.gridGroupBox_4->y()* scale,
-		ui.gridGroupBox_4->width()* scale, ui.gridGroupBox_4->height()* scale);
-
-	QCheckBox* all_chncheckBox[24] = { ui.CH1,ui.CH2 ,ui.CH3 ,ui.CH4 ,ui.CH5 ,ui.CH6,
-	ui.CH7,ui.CH8 ,ui.CH9 ,ui.CH10 ,ui.CH11 ,ui.CH12,
-	ui.CH13,ui.CH14 ,ui.CH15 ,ui.CH16 ,ui.CH17 ,ui.CH18,
-	ui.CH19,ui.CH20 ,ui.CH21 ,ui.CH22 ,ui.CH23 ,ui.CH24 };
-
-
-
-	selected_chn_sum = 0;
-	for (auto tmp : all_chncheckBox)
-	{
-		tmp->setGeometry(tmp->x()*scale,tmp->y()*scale,tmp->width()*scale,tmp->height()*scale);
-		tmp->setBaseSize(tmp->size()*scale);
-		tmp->setIconSize(tmp->iconSize() * scale);
-		tmp->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Ignored);
-	}
-	ui.channelGroup->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-
-
-
-	ui.trigModel->setFixedSize(ui.trigModel->width()* scale, ui.trigModel->height()* scale);
-	ui.trigSource->setFixedSize(ui.trigSource->width()* scale, ui.trigSource->height()* scale);
-	ui.sampleFreq->setFixedSize(ui.sampleFreq->width()* scale, ui.sampleFreq->height()* scale);
-	ui.trigLevel->setFixedSize(ui.trigLevel->width()* scale, ui.trigLevel->height()* scale);
-	ui.trigLength->setFixedSize(ui.trigLength->width()* scale, ui.trigLength->height()* scale);
-	ui.delayTime->setFixedSize(ui.delayTime->width()* scale, ui.delayTime->height()* scale);
-	ui.ctnscqDisplay->setFixedSize(ui.ctnscqDisplay->width()* scale, ui.ctnscqDisplay->height()* scale);
-	ui.ctnacqMutliSelcet->setFixedSize(ui.ctnacqMutliSelcet->width()* scale, ui.ctnacqMutliSelcet->height()* scale);
-	ui.singleacqTime->setFixedSize(ui.singleacqTime->width()* scale, ui.singleacqTime->height()* scale);
-	ui.da0MutliSelect->setFixedSize(ui.da0MutliSelect->width()* scale, ui.da0MutliSelect->height()* scale);
-	ui.da1MutliSelect->setFixedSize(ui.da1MutliSelect->width()* scale, ui.da1MutliSelect->height()* scale);
-	ui.da2MutliSelect->setFixedSize(ui.da2MutliSelect->width()* scale, ui.da2MutliSelect->height()* scale);
-	ui.da3MutliSelect->setFixedSize(ui.da3MutliSelect->width()* scale, ui.da3MutliSelect->height()* scale);
-
-	ui.baseline_input->setFixedSize(ui.baseline_input->width()* scale, ui.baseline_input->height()* scale);
-
-
-	*/
-
+	return;
 }
 
 /*************************************************
@@ -372,19 +353,21 @@ void HectoBioWindow::on_compare_btn() {
 
 	cmpwindow->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
-	QPixmap pmap(":/HectoBioWindow/res/DNA.png");
+	/*QPixmap pmap(":/HectoBioWindow/res/backgroud.png");
 
 	QPalette plt;
 
 	plt.setBrush(cmpwindow->backgroundRole(), QBrush(pmap));
 
 	cmpwindow->setPalette(plt);
-	cmpwindow->setMask(pmap.mask());
+	cmpwindow->setMask(pmap.mask());*/
 	//pmap.createMaskFromColor(Qt::color0);
 
 	cmpwindow->setAutoFillBackground(false);
 
 	cmpwindow->show();
+
+	return;
 }
 
 /*************************************************
@@ -394,7 +377,26 @@ void HectoBioWindow::on_compare_btn() {
 void HectoBioWindow::on_signalView_btn() {
 	signaView* signalviewWindow = new signaView();
 	signalviewWindow->setWindowTitle(QString::fromLocal8Bit("信号打分（供内部实验人员操作）"));
+
+	signalviewWindow->setWindowIcon(QIcon(QStringLiteral("res/hectobio1.png")));
+
+	signalviewWindow->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
+	/*QPixmap pmap(":/HectoBioWindow/res/backgroud.png");
+
+	QPalette plt;
+
+	plt.setBrush(signalviewWindow->backgroundRole(), QBrush(pmap));
+
+	signalviewWindow->setPalette(plt);
+	signalviewWindow->setMask(pmap.mask());*/
+	//pmap.createMaskFromColor(Qt::color0);
+
+	signalviewWindow->setAutoFillBackground(false);
+
 	signalviewWindow->show();
+
+	return;
 }
 
 /*************************************************
@@ -426,6 +428,8 @@ void HectoBioWindow::on_selectAll_btn() {
 	ui.CH22->setCheckState(Qt::Checked);
 	ui.CH23->setCheckState(Qt::Checked);
 	ui.CH24->setCheckState(Qt::Checked);
+
+	return;
 }
 
 /*************************************************
@@ -456,17 +460,20 @@ void HectoBioWindow::on_cancelAll_btn() {
 	ui.CH22->setCheckState(Qt::Unchecked);
 	ui.CH23->setCheckState(Qt::Unchecked);
 	ui.CH24->setCheckState(Qt::Unchecked);
+
+	return;
 }
 
 /*************************************************
    选中通道槽函数
 ***************************************************/
 void HectoBioWindow::on_selectChnOK_btn() {
-
+	//
 	if (!device_flag)
 	{
 		QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("未检测到输入设备,请连接设备"), QMessageBox::Yes);
 		ui.textBrowser->append(QString::fromLocal8Bit("未检测到输入设备,请连接设备"));
+		//init_circuit(circuit_set);
 		return;
 	}
 
@@ -500,6 +507,7 @@ void HectoBioWindow::on_selectChnOK_btn() {
 		ui.textBrowser->append(QString::fromLocal8Bit("请选择通道,然后进行下一步"));
 	}
 
+	return;
 }
 
 /*************************************************
@@ -536,51 +544,160 @@ void HectoBioWindow::on_acqparaOK_btn() {
 	ui.textBrowser->append(QString::fromLocal8Bit("延时："));
 	ui.textBrowser->append(QString::number(trig_delay));
 
+	return;
 }
 
 
 /*************************************************
-  //连续采集功能槽函数
+  //连续采集功能槽函数  连续采集和单次采集互斥
 ***************************************************/
 void HectoBioWindow::on_startCtnAcq_btn() {
 	//开始连续采集之前需判断设备是否在线
-	if (!device_flag)
-	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("未检测到输入设备,请连接设备"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("未检测到输入设备,请连接设备"));
-		return;
-	}
-	//是否选择通道  如果没有选择通道  报错
-	if (selected_chn_sum == 0)
-	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("请候选检测通道"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("请勾选检测通道"));
-		return;
-	}
+	//if (!device_flag)
+	//{
+	//	QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("未检测到输入设备,请连接设备"), QMessageBox::Yes);
+	//	ui.textBrowser->append(QString::fromLocal8Bit("未检测到输入设备,请连接设备"));
+	//	return;
+	//}
+	////是否选择通道  如果没有选择通道  报错
+	//if (selected_chn_sum == 0)
+	//{
+	//	QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("请候选检测通道"), QMessageBox::Yes);
+	//	ui.textBrowser->append(QString::fromLocal8Bit("请勾选检测通道"));
+	//	return;
+	//}
 	/*****************************************************
 	* //如果选择通道，读取AD数据
 	则调用信号显示功能部分（显示，根据传递的通道数显示）
 	******************************************************/
-	acq_flag = CONTINUE_ACQ;
-	PUSHORT data_buf = NULL;
-	//data_buf 为实时数据
-	//从电路输出直接读
-	data_buf = new USHORT[circuit_set->read_data_length];
-	bool circuit_read_flag = circuit_set->read_AD(data_buf, circuit_set->read_data_length);
-
-	//更新显示区信号  判断AD读取是否成功
-	if (!circuit_read_flag)
+	
+	for (int i=0;i<24;i++)
 	{
-		ui.textBrowser->append(QString::fromLocal8Bit(circuit_set->ret_flag));
-		circuit_set->stop_AD_device();
-		return;
+		circuit_set->channel[i] = selectedChn[i];
 	}
-	updateAD_data(data_buf);
+	circuit_set->trig_mode = ui.trigModel->currentIndex();
+	circuit_set->trig_source = ui.trigSource->currentIndex();
+	circuit_set->sample_freq = ui.sampleFreq->text().toInt();
+	circuit_set->trig_level = ui.trigLevel->text().toInt();
+	circuit_set->trig_length = ui.trigLength->text().toInt();
+	circuit_set->delay = ui.delayTime->text().toInt();
+
+	/// <summary>
+	/// init_start_AD_device更新para 更新USB参数
+	/// </summary>
+	//软件触发
+	if (circuit_set->bsoftTrig==TRIG_SRC_SOFT)
+	{
+		softTrig = true;
+		
+		samcnt = TRIG_UNIT*READ_DATA_LENGTH;
+	}
+	else
+	{
+		softTrig = false;
+		samcnt = READ_DATA_LENGTH;
+	}
+
+	samcnt *= selected_chn_sum;
+	if (samcnt>READ_MAX_LEN)
+	{
+		samcnt = READ_MAX_LEN;
+	}
+	//初始化采集
+	if (circuit_set->init_start_AD_device())
+	{
+		ui.textBrowser->append(QString::fromLocal8Bit("初始化AD成功"));
+		ui.singleacqEnd->setEnabled(false);
+	}
+	else
+	{
+		ui.textBrowser->append(QString::fromLocal8Bit("初始化AD失败"));
+		//return;
+	}
+	//等待AD初始化完成，否则无法接受软件触发
+	Sleep(10);
+
+
+	acq_flag = CONTINUE_ACQ;
+	//选择显示
+	if (ui.ctnscqDisplay->checkState()==Qt::Checked)
+	{
+		ui.textBrowser->append(QString::fromLocal8Bit("读取和显示数据"));
+		ui.singleacqEnd->setEnabled(false);
+		ui.ctnscqEnd->setEnabled(true);
+		ctn_saveflag = true;
+	}
+	else
+	{
+		ui.textBrowser->append(QString::fromLocal8Bit("读取和保存数据"));
+		ctn_saveflag = false;
+	}
+
+	int i = 0;
+	//分配缓冲区
+	if (ad_data_buff)
+	{
+		for (i=0;i<MAX_SEGMENT;i++)
+		{
+			ad_data_buff[i] = NULL;
+		}
+	}
+	//多缓冲
+	for (i=0;i<MAX_SEGMENT;i++)
+	{
+		ad_data_buff[i] = new USHORT[samcnt];//每个缓冲区存放一个通道数据
+	}
+	//初始化多缓冲标志
+	for (i=0;i<MAX_SEGMENT;i++)
+	{
+		NewSegmentData[i] = false;
+	}
+	ReadIndex = 0;
+	ADRUN = true;//启动读
+	//read_thread = new ReadADDataThread();
+	////启动读线程和显示线程
+	////USB2069FCAD  494行
+	//read_timer = new QTimer();
+	//read_timer->start(10);
+
+	updateAD_data();
+
+	//USB2069_ADoffset(linkdevice, 0, 0, 0);
+	//circuit_set->read_AD(ad_data_buff[0], 8000);
+	//for (i=0;i<8000;i++)
+	//{
+	//	//转换电平
+	//	unsigned short tmp = (ad_data_buff[0][i] - 32768);
+	//	float step = float(1.0 / 32768.0)*10;
+	//	
+	//	float value = tmp * step;
+	//	printf("%f \n", value);
+	//	savetestSignal[i] =double(value);
+	//}
+
+	
+
+	//PUSHORT data_buf;
+	////data_buf 为实时数据 
+	////从电路输出直接读
+	//data_buf = new USHORT[circuit_set->read_data_length];
+	//bool circuit_read_flag = circuit_set->read_AD(data_buf, circuit_set->read_data_length);
+
+	////更新显示区信号  判断AD读取是否成功
+	//if (!circuit_read_flag)
+	//{
+	//	ui.textBrowser->append(QString::fromLocal8Bit(circuit_set->ret_flag));
+	//	circuit_set->stop_AD_device();
+	//	return;
+	//}
+	
+	return;
 
 }
 
 /*************************************************
-   //停止连续采集槽函数
+   //停止连续采集槽函数   停止采集之后应立即调用线程函数进行存盘
+
 ***************************************************/
 void HectoBioWindow::on_stopCtnAcq_btn() {
 	if (!device_flag)
@@ -597,28 +714,124 @@ void HectoBioWindow::on_stopCtnAcq_btn() {
 		return;
 	}
 	//如果还没开始检测就点结束，报错启动检测，或pass
+	//点击连续采集停止之后  判断是否勾选显示
+	//暂定是否勾选显示均存盘
+	//if (ui.ctnscqDisplay->isChecked()==true || ui.ctnscqDisplay->isChecked()==false)
+	//{
+	//	//存盘线程
+	//	//ctn_read_thread->start();
+	//	circuit_set->stop_AD_device();
+	//	//connect(ctn_read_thread, &ReadADDataThread::isReadDone, this, &HectoBioWindow::dealReadDone);
+	//}
+	circuit_set->stop_AD_device();
+	ui.textBrowser->append(QString::fromLocal8Bit("关闭连续采集"));
+	
+	return;
 }
 
 /*************************************************
    //单次采集槽函数
 ***************************************************/
 void HectoBioWindow::on_singleAcq_btn() {
-	if (!device_flag)
-	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("未检测到输入设备,请连接设备"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("未检测到输入设备,请连接设备"));
-		return;
-	}
-	//如果没有选择通道  报错
-	if (selected_chn_sum == 0)
-	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("请候选检测通道"), QMessageBox::Yes);
-		ui.textBrowser->append(QString::fromLocal8Bit("请勾选检测通道"));
-		return;
-	}
-	//如果还没开始检测就点结束，报错启动检测，或pass
-	acq_flag = SINGLE_ACQ;
+	//////////////////////////////////////////////////////////////////////////
+	/*测试时注释下部分，实用时取消注释*/
+	//////////////////////////////////////////////////////////////////////////
 
+	//if (!device_flag)
+	//{
+	//	QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("未检测到输入设备,请连接设备"), QMessageBox::Yes);
+	//	ui.textBrowser->append(QString::fromLocal8Bit("未检测到输入设备,请连接设备"));
+	//	return;
+	//}
+	////如果没有选择通道  报错
+	//if (selected_chn_sum == 0)
+	//{
+	//	QMessageBox::warning(this, QString::fromLocal8Bit("error！！！"), QString::fromLocal8Bit("请候选检测通道"), QMessageBox::Yes);
+	//	ui.textBrowser->append(QString::fromLocal8Bit("请勾选检测通道"));
+	//	return;
+	//}
+	//如果还没开始检测就点结束，报错启动检测，或pass
+	if (circuit_set->bsoftTrig == TRIG_SRC_SOFT)
+	{
+		softTrig = true;
+
+		samcnt = TRIG_UNIT * READ_DATA_LENGTH;
+	}
+	else
+	{
+		softTrig = false;
+		samcnt = READ_DATA_LENGTH;
+	}
+
+	samcnt *= selected_chn_sum;
+	if (samcnt > READ_MAX_LEN)
+	{
+		samcnt = READ_MAX_LEN;
+	}
+
+	//更新采集参数
+	//if (circuit_set->init_start_AD_device())
+	//{
+	//	ui.textBrowser->append(QString::fromLocal8Bit("初始化AD成功"));
+	//	ui.singleacqEnd->setEnabled(false);
+	//}
+	//else
+	//{
+	//	ui.textBrowser->append(QString::fromLocal8Bit("初始化AD失败"));
+	//	return;
+	//}
+	//等待AD初始化完成，否则无法接受软件触发
+	Sleep(10);
+
+
+	int i = 0;
+	//分配缓冲区
+	if (ad_data_buff)
+	{
+		for (i = 0; i < MAX_SEGMENT; i++)
+		{
+			ad_data_buff[i] = NULL;
+		}
+	}
+	//多缓冲
+	for (i = 0; i < MAX_SEGMENT; i++)
+	{
+		ad_data_buff[i] = new USHORT[samcnt];//每个缓冲区存放一个通道数据
+	}
+	//初始化多缓冲标志
+	for (i = 0; i < MAX_SEGMENT; i++)
+	{
+		NewSegmentData[i] = false;
+	}
+	ReadIndex = 0;
+	ADRUN = true;//启动读
+
+	//连续采集和单次采集互斥
+	acq_flag = SINGLE_ACQ;
+	ui.ctnscqStart->setEnabled(false);
+	ui.ctnscqEnd->setEnabled(false);
+
+	//采集点数等于选择通道数*设定频率*采集时长
+	//后面更改单次采集的显示线程时，需要将显示的点数设定为该值
+	//samcnt = selected_chn_sum * circuit_set->para_init.ADFREQ * ui.singleacqTime->text().toInt();
+	//设置采集线程
+	read_thread = new ReadADDataThread();
+	
+	//设置一个TIMER，动态刷新signaldisplayplot窗口
+	read_timer = new QTimer(this);
+	read_timer->start(10);
+	//连接线程信号,线程完之后的动作
+	connect(read_timer, &QTimer::timeout, this, &HectoBioWindow::displayReadsignal);
+	
+	char* filepath = "D:\\Download\\sftpdownload\\5.fast5";
+
+	CompareWidgets com;
+	
+	savetestSignal=com.readDataFromONT(filepath);
+
+	ui.singleacqEnd->setEnabled(false);
+
+	return;
 }
 
 /*************************************************
@@ -642,14 +855,21 @@ void HectoBioWindow::on_DA0_btn() {
 		return;
 	}
 	//选择正弦波或方波
-	int da0index = ui.da0MutliSelect->currentIndex();
-	double da0freq = ui.da0freq->text().toDouble();
-	int da0point = ui.da0samplepoint->text().toInt();
-	int da0cycle = ui.da0cycle->text().toInt();
-	bool da0enable = ui.da0start->checkState();
+	int da0index=0;
+	da0index= ui.da0MutliSelect->currentIndex();
+	long da0freq = 0;
+	da0freq=ui.da0freq->text().toDouble();
+	int da0point = 0;
+	da0point= ui.da0samplepoint->text().toInt();
+	int da0cycle = 0;
+	da0cycle=ui.da0cycle->text().toInt();
+	bool da0enable = 0;
+	da0enable= ui.da0start->checkState();
 	bool da0enable_cycle = false;
-	bool stopflag = 1;
-	PUSHORT data_buf = new USHORT[circuit_set->read_data_length];
+	bool stopflag = false;
+	PUSHORT data_buf = NULL;
+	data_buf=new USHORT[circuit_set->read_data_length];
+	//PUSHORT data_buf = (PUSHORT)malloc(sizeof(USHORT) * circuit_set->read_data_length);
 
 	if (da0cycle > 0)
 	{
@@ -659,9 +879,19 @@ void HectoBioWindow::on_DA0_btn() {
 	bool ret_DA_flag = circuit_set->set_DA(DA0, da0enable, da0freq, da0enable_cycle, da0cycle, stopflag, data_buf, da0point);
 	if (ret_DA_flag)
 	{
-
+		ui.textBrowser->append(QString::fromLocal8Bit("DA0设置完毕"));
 	}
 	delete[] data_buf;
+
+	/*bool ret_DA_flag = USB2069_SetDA(circuit_set->link_device, DA0, da0enable, &da0freq, da0enable_cycle, da0cycle, stopflag, data_buf, da0point);
+	if (ret_DA_flag)
+	{
+		ui.textBrowser->append(QString::fromLocal8Bit("DA0设置完毕"));
+	}
+	delete[] data_buf;
+	*/
+
+	return;
 
 }
 void HectoBioWindow::on_DA1_btn() {
@@ -679,11 +909,16 @@ void HectoBioWindow::on_DA1_btn() {
 		return;
 	}
 	//选择正弦波或方波
-	int da1index = ui.da1MutliSelect->currentIndex();
-	double da1freq = ui.da1freq->text().toDouble();
-	int da1point = ui.da1samplepoint->text().toInt();
-	int da1cycle = ui.da1cycle->text().toInt();
-	bool da1enable = ui.da1start->checkState();
+	int da1index = 0;
+	da1index = ui.da1MutliSelect->currentIndex();
+	long da1freq = 0;
+	da1freq = ui.da1freq->text().toDouble();
+	int da1point = 0;
+	da1point = ui.da1samplepoint->text().toInt();
+	int da1cycle = 0;
+	da1cycle = ui.da1cycle->text().toInt();
+	bool da1enable = 0;
+	da1enable = ui.da1start->checkState();
 	bool da1enable_cycle = false;
 	bool stopflag = 1;
 	PUSHORT data_buf = new USHORT[circuit_set->read_data_length];
@@ -696,10 +931,11 @@ void HectoBioWindow::on_DA1_btn() {
 	bool ret_DA_flag = circuit_set->set_DA(DA1, da1enable, da1freq, da1enable_cycle, da1cycle, stopflag, data_buf, da1point);
 	if (ret_DA_flag)
 	{
-
+		ui.textBrowser->append(QString::fromLocal8Bit("DA1设置完毕"));
 	}
 	delete[] data_buf;
 
+	return;
 }
 void HectoBioWindow::on_DA2_btn() {
 	if (!device_flag)
@@ -716,11 +952,16 @@ void HectoBioWindow::on_DA2_btn() {
 		return;
 	}
 	//选择正弦波或方波
-	int da2index = ui.da2MutliSelect->currentIndex();
-	double da2freq = ui.da2freq->text().toDouble();
-	int da2point = ui.da2samplepoint->text().toInt();
-	int da2cycle = ui.da2cycle->text().toInt();
-	bool da2enable = ui.da2start->checkState();
+	int da2index = 0;
+	da2index = ui.da2MutliSelect->currentIndex();
+	long da2freq = 0;
+	da2freq = ui.da2freq->text().toDouble();
+	int da2point = 0;
+	da2point = ui.da2samplepoint->text().toInt();
+	int da2cycle = 0;
+	da2cycle = ui.da2cycle->text().toInt();
+	bool da2enable = 0;
+	da2enable = ui.da2start->checkState();
 	bool da2enable_cycle = false;
 	bool stopflag = 1;
 	PUSHORT data_buf = new USHORT[circuit_set->read_data_length];
@@ -733,10 +974,11 @@ void HectoBioWindow::on_DA2_btn() {
 	bool ret_DA_flag = circuit_set->set_DA(DA2, da2enable, da2freq, da2enable_cycle, da2cycle, stopflag, data_buf, da2point);
 	if (ret_DA_flag)
 	{
-
+		ui.textBrowser->append(QString::fromLocal8Bit("DA2设置完毕"));
 	}
 	delete[] data_buf;
 
+	return;
 }
 void HectoBioWindow::on_DA3_btn() {
 	if (!device_flag)
@@ -753,11 +995,16 @@ void HectoBioWindow::on_DA3_btn() {
 		return;
 	}
 	//选择正弦波或方波
-	int da3index = ui.da3MutliSelect->currentIndex();
-	double da3freq = ui.da3freq->text().toDouble();
-	int da3point = ui.da3samplepoint->text().toInt();
-	int da3cycle = ui.da3cycle->text().toInt();
-	bool da3enable = ui.da3start->checkState();
+	int da3index = 0;
+	da3index = ui.da3MutliSelect->currentIndex();
+	long da3freq = 0;
+	da3freq = ui.da3freq->text().toDouble();
+	int da3point = 0;
+	da3point = ui.da3samplepoint->text().toInt();
+	int da3cycle = 0;
+	da3cycle = ui.da3cycle->text().toInt();
+	bool da3enable = 0;
+	da3enable = ui.da3start->checkState();
 	bool da3enable_cycle = false;
 	bool stopflag = 1;
 	PUSHORT data_buf = new USHORT[circuit_set->read_data_length];
@@ -770,10 +1017,11 @@ void HectoBioWindow::on_DA3_btn() {
 	bool ret_DA_flag = circuit_set->set_DA(DA3, da3enable, da3freq, da3enable_cycle, da3cycle, stopflag, data_buf, da3point);
 	if (ret_DA_flag)
 	{
-
+		ui.textBrowser->append(QString::fromLocal8Bit("DA3设置完毕"));
 	}
 	delete[] data_buf;
 
+	return;
 }
 
 /*************************************************
@@ -795,6 +1043,11 @@ void HectoBioWindow::on_baselineRd_btn() {
 		return;
 	}
 	//选择通道后
+	double* freq = new double;
+	circuit_set->get_freq(freq);
+	ui.textBrowser->append(QString::number(*freq));
+
+	return;
 }
 
 /*************************************************
@@ -830,6 +1083,7 @@ void HectoBioWindow::on_baselineRcv_btn() {
 		ui.textBrowser->append(QString::fromLocal8Bit("输入校正偏移：double类型"));
 	}
 
+	return;
 }
 
 
@@ -864,7 +1118,7 @@ void HectoBioWindow::on_saveoutinfo_btn() {
 	QString Last_FileContent = str;
 	file.close();
 
-
+	return;
 }
 
 /*************************************************
@@ -879,18 +1133,21 @@ void HectoBioWindow::on_clearinfo_btn() {
 //随机产生初始信号，仅用于电路未到时测试
 ***************************************************/
 void HectoBioWindow::timerEvent(QTimerEvent*) {
+	static int c = 0;
 	savetestSignal = new double[500];
 
 	for (int i = 0; i < 499; i++)
 	{
 		val[i] = val[i + 1];
-		savetestSignal[i] = val[i];
 	}
-	val[499] = qrand() % 500;
+	//val[499] = qrand() % 500;
+	val[499] = savetestSignal[c];
 	curve->setSamples(time, val, 500);
 	ui.signalPlot->replot();
 
+	c++;
 
+	return;
 }
 
 
@@ -899,12 +1156,24 @@ void HectoBioWindow::timerEvent(QTimerEvent*) {
    //信号显示槽函数
 ***************************************************/
 void HectoBioWindow::on_disp_btn() {
+
+	if (!device_flag)
+	{
+		return;
+	}
+	if (selected_chn_sum==0)
+	{
+		return;
+	}
+
 	disp_show_flag = true;
 	//ui.signaldispOpenGL->DrawWindowBackground();
 	//QwtPlot* myplot = new QwtPlot("curve display");
-	curve->setSamples(time, val, 500);
+	/*curve->setSamples(time, val, 500);
 	curve->attach(ui.signalPlot);
-	ui.signalPlot->replot();
+	ui.signalPlot->replot();*/
+	read_timer->start();
+
 	ui.textBrowser->append("now start draw signal plot");
 }
 /*************************************************
@@ -916,11 +1185,15 @@ void HectoBioWindow::on_earse_btn() {
 		return;
 	}
 
-	this->killTimer(timer);
-	curve->setData(0);
-	//ui.signalPlot->detachItems();
-	ui.signalPlot->replot();
+	//this->killTimer(timer);
+	//curve->setData(0);
+	////ui.signalPlot->detachItems();
+	//ui.signalPlot->replot();
+	read_timer->stop();
 	ui.textBrowser->append("eraser signal plot");
+
+	return;
+
 }
 /*************************************************
   //暂停信号槽函数
@@ -932,13 +1205,12 @@ void HectoBioWindow::on_stop_btn() {
 	}
 	if (!disp_up_flag || !disp_down_flag)
 	{
+		return;
 	}
+	//异或更新停止状态
 	disp_stop_flag = disp_stop_flag ^ true;
-	this->killTimer(timer);
-	//ui.signalPlot->update();
-	//ui.signalPlot->close();
-
-	//ui.signalPlot->replot();
+	//this->killTimer(timer);
+	read_timer->stop();
 	ui.textBrowser->append("stop signal plot");
 
 	//暂停后可以放大，缩小等功能
@@ -952,6 +1224,9 @@ void HectoBioWindow::on_stop_btn() {
 	zoomer->setMousePattern(QwtEventPattern::MouseSelect2, Qt::RightButton, Qt::ControlModifier);
 
 	zoomer->setEnabled(true);
+
+	return;
+
 }
 
 /*************************************************
@@ -979,6 +1254,7 @@ void HectoBioWindow::on_hurry_btn() {
 
 	ui.textBrowser->append(QString::fromStdString(text));
 
+	return;
 }
 
 /*************************************************
@@ -996,31 +1272,115 @@ void HectoBioWindow::on_slow_btn() {
 	std::string text = std::to_string(time_dur);
 
 	ui.textBrowser->append(QString::fromStdString(text));
+
+	return;
 }
 
 /*************************************************
    更新AD数据，电路到之后测试
 ***************************************************/
-bool HectoBioWindow::updateAD_data(PUSHORT data_buf) {
+bool HectoBioWindow::updateAD_data() {
 
 	//示例信号
 	//随机生成信号
-	for (int i = 0; i < 500; i++)
-	{
-		time[i] = i;
-	}
+	//for (int i = 0; i < 500; i++)
+	//{
+	//	time[i] = i;
+	//}
 
-	ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
-	ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
-	ui.signalPlot->setAxisTitle(QwtPlot::xBottom, "time / mS");
+	//ui.signalPlot->setTitle(QwtText("SIGNAL PLOT"));
+	//ui.signalPlot->setAxisTitle(QwtPlot::yLeft, "current / mA");
+	//ui.signalPlot->setAxisTitle(QwtPlot::xBottom, "time / mS");
 
-	if (data_buf)
+	//if (data_buf)
+	//{
+	//	for (int i = 0; i < 500; i++)
+	//	{
+	//		time[i] = data_buf[i];
+	//	}
+	//}
+
+	//更新数据  FCFR 879
+	PUSHORT inBuffer = NULL;
+	ULONG status = FALSE;
+	inBuffer = new USHORT[samcnt];
+	ULONG i = 0;
+	LONG bBufOver = 0;
+	
+	
+	memset(inBuffer, 0, samcnt * sizeof(USHORT));
+	while (ADRUN)
 	{
-		for (int i = 0; i < 500; i++)
+		if (circuit_set->bsoftTrig)
 		{
-			time[i] = data_buf[i];
+			USB2069_ExeSoftTrig(linkdevice);
 		}
+		status = USB2069_ReadAD(linkdevice, inBuffer, samcnt);
+		//读取溢出
+		if (!USB2069_GetBufOver(linkdevice, &bBufOver))
+		{
+			ADUpdate = true;
+			//goto exit_read;
+		}
+		if (bBufOver)
+		{
+			ui.textBrowser->append(QString::fromLocal8Bit("Error:缓存溢出\n"));
+			ADUpdate = true;
+			//goto exit_read;
+		}
+		#define DISPLAY_CNT 500
+		if (samcnt < DISPLAY_CNT)
+		{
+			//显示数目 等于 获取数目
+			discnt = samcnt;
+		}
+		else
+		{
+			discnt = DISPLAY_CNT;
+		}
+		for (ULONG i=0;i<discnt;i++)
+		{
+			//默认显示通道
+			int showchn = 0;
+			ad_data_buff[ReadIndex][i] = inBuffer[selected_chn_sum*i+showchn];
+		}
+		if (NewSegmentData[ReadIndex] == true)
+		{
+			ReadIndex = 0;
+			CurrentIndex = 0;
+			for (int i = 0; i < MAX_SEGMENT; i++)
+			{
+				NewSegmentData[i] = false;
+			}
+		}
+		NewSegmentData[ReadIndex] = true;
+		//发送事件，告诉绘制显示窗口，该批数据已采集
+		//连接线程信号,线程完之后的动作
+		//ctn_read_thread = new ReadADDataThread();
+		//启动读线程和显示线程
+		//USB2069FCAD  494行
+		/*read_timer = new QTimer();
+		read_timer->start(10);
+		connect(read_timer, &QTimer::timeout, this, &HectoBioWindow::displayCTNReadsignal);*/
+		//发送事件，告诉绘制窗口线程，数据已准备好
+		emit readisDone();
+		
+		connect(this, &HectoBioWindow::readisDone, this, &HectoBioWindow::displayCTNReadsignal);
+		
+		
+		ReadIndex++;
+		if (ReadIndex==MAX_SEGMENT)
+		{
+			ReadIndex = 0;
+			return true;
+		}
+		ADUpdate = true;
+
 	}
+
+exit_read:
+	delete[] inBuffer;
+	ADUpdate = true;
 	return true;
 }
 
@@ -1049,16 +1409,19 @@ void HectoBioWindow::save_testSignal_btn() {
 	QString save_name = filedialog->getSaveFileName(nullptr,nullptr,nullptr, QString(tr("All file(*.*)")));
 	ui.textBrowser->append(save_name);
 
-	if (save_name == "")
-	{
-		return;
-	}
 	//保存数据
 	//可选保存格式
 	//saveDataAsStream(save_name,savetestSignal);
-
-	saveDataAsHdf5(save_name.toStdString().c_str(), savetestSignal);
-
+	if (save_name.endsWith("txt"))
+	{
+		saveDataAsStream(save_name, savetestSignal);
+	}
+	else if (save_name.endsWith("h5"))
+	{
+		saveDataAsHdf5(save_name.toStdString().c_str(), savetestSignal);
+	}
+	
+	return;
 }
 
 /*************************************************
@@ -1074,6 +1437,9 @@ void HectoBioWindow::saveDataAsStream(QString& save_name, double* savedata) {
 	}
 
 	fclose(save_file);
+
+	return;
+
 }
 
 /*************************************************
@@ -1094,6 +1460,8 @@ void HectoBioWindow::saveDataAsText(QString& save_name, double* savedata) {
 
 
 	file.close();
+
+	return;
 }
 
 /*************************************************
@@ -1108,4 +1476,159 @@ void HectoBioWindow::saveDataAsHdf5(const char* save_name, double* savedata) {
 	hdf5_op = new Hdf5Read();
 
 	hdf5_op->save_file(savedata, row, col, save_name, db_name);
+
+	return;
+}
+
+
+void HectoBioWindow::dealReadDone() {
+	//读取完成之后 关闭AD 存储得到数据 关闭线程
+
+	circuit_set->stop_AD_device();
+	//存储s
+	//保存
+	ui.textBrowser->append(QString::fromLocal8Bit("存盘成功"));
+	//关闭读取线程
+	if (acq_flag==SINGLE_ACQ)
+	{
+		read_thread->quit();
+		read_thread->wait();
+		read_timer->destroyed();
+		delete[] savetestSignal;
+	}
+	else if (acq_flag==CONTINUE_ACQ)
+	{
+		ctn_read_thread->quit();
+		ctn_read_thread->wait();
+		read_timer->destroyed();
+	}
+	
+	
+	ui.singleacqEnd->setEnabled(true);
+	ui.ctnscqStart->setEnabled(true);
+	ui.ctnscqEnd->setEnabled(true);
+
+	
+}
+
+//单次采集
+//和Read线程搭配 实时显示信号
+void HectoBioWindow::displayReadsignal() {
+	
+
+	static int c = 0;
+
+	for (int i = 0; i < 499; i++)
+	{
+		val[i] = val[i + 1];
+	}
+
+	
+	//val[499] = qrand() % 500;
+	val[499] = savetestSignal[c];
+	curve->setSamples(time, val, 500);
+	curve->attach(ui.signalPlot);
+	ui.signalPlot->replot();
+
+	c++;
+
+	//后面要改为实际采集点数
+	if (c>8000)
+	{
+		c = 0;
+		read_timer->stop();
+		//单次采集等结束之后存盘
+		read_thread->start();
+	/*	ui.singleacqEnd->setEnabled(true);
+		read_timer->stop();
+		read_timer->destroyed();
+		read_thread->destroyed();
+		delete[] savetestSignal;*/
+
+		//等待抛出isReadDone信号
+		if (acq_flag==SINGLE_ACQ)
+		{
+			connect(read_thread, &ReadADDataThread::isReadDone, this, &HectoBioWindow::dealReadDone);
+		}
+		else if (acq_flag==CONTINUE_ACQ)
+		{
+			connect(ctn_read_thread, &ReadADDataThread::isReadDone, this, &HectoBioWindow::dealReadDone);
+		}
+		
+		return;
+	}
+
+}
+
+
+
+//连续采集
+//和Read线程搭配 实时显示信号
+void HectoBioWindow::displayCTNReadsignal() {
+	//将数据和curve对象传送至绘制线程
+	DrawPlot drawplot;
+	drawplot.moveToThread(&thread);
+	connect(this, SIGNAL(started()), &drawplot, SLOT(&drawplot::slot));
+	thread.start();
+
+}
+
+void HectoBioWindow::run() {
+	qDebug() << "thread:" << QThread::currentThreadId();
+
+}
+
+
+
+void HectoBioWindow::start() {
+	//启动绘制线程
+	
+	static int c = 0;
+
+	for (int i = 0; i < 499; i++)
+	{
+		val[i] = val[i + 1];
+	}
+
+	int seg;
+	for ( seg=1;seg<MAX_SEGMENT;seg++)
+	{
+		//val[499] = qrand() % 500;
+	//val[499] = savetestSignal[c];
+		val[499] = ad_data_buff[seg][c];
+		curve->setSamples(time, val, 500);
+		curve->attach(ui.signalPlot);
+		ui.signalPlot->replot();
+
+		c++;
+		if (c>=discnt)
+		{
+			c = 0;
+		}
+	}
+
+	//后面要改为实际采集点数
+	if (seg == MAX_SEGMENT)
+	{
+		c = 0;
+		
+		/*	ui.singleacqEnd->setEnabled(true);
+			read_timer->stop();
+			read_timer->destroyed();
+			read_thread->destroyed();
+			delete[] savetestSignal;*/
+
+			//等待抛出isReadDone信号
+
+		return;
+	}
+	return;
+}
+
+
+void DrawSignalThread::run() {
+
+	qDebug() << "current thread is:" << QThread::currentThreadId();
+	emit isDrawDone();
+	return;
 }

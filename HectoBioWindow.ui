@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1255</width>
-    <height>655</height>
+    <height>855</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -900,6 +900,9 @@
     </property>
    </widget>
    <widget class="QMenu" name="menu_signalView_widget">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="styleSheet">
      <string notr="true">font: 75 12pt &quot;Agency FB&quot;;
 </string>
